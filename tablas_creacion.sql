@@ -99,6 +99,29 @@ CREATE TABLE Mundial.Expulsion(
 	CONSTRAINT Fk_Expulsion_Tarjeta FOREIGN KEY(id_tarjeta) REFERENCES Mundial.Tarjeta(id_tarjeta)
 );
 
+CREATE TABLE Mundial.Sustitucion(
+	id_sustitucion INT IDENTITY(1,1) PRIMARY KEY,
+	id_partido INT NOT NULL,
+	id_seleccion INT NOT NULL,
+	id_jugador_sale INT NOT NULL,
+	id_jugador_entra INT NOT NULL,  
+	motivo VARCHAR(20) NOT NULL
+	CHECK (motivo IN (
+        'Lesion',
+        'Tactica',
+		'Cansancio'
+    )),
+	minuto INT NOT NULL,
+
+	CONSTRAINT Fk_Sustitucion_Partido FOREIGN KEY(id_partido) REFERENCES Mundial.Partido(id_partido),
+	CONSTRAINT Fk_Sustitucion_Seleccion FOREIGN KEY(id_seleccion) REFERENCES Mundial.Seleccion(id_seleccion),
+	CONSTRAINT Fk_Sustitucion_Jugador_Entra FOREIGN KEY(id_jugador_entra) REFERENCES Mundial.Jugador(id_jugador),
+	CONSTRAINT Fk_Sustitucion_Jugador_Sale FOREIGN KEY(id_jugador_sale) REFERENCES Mundial.Jugador(id_jugador),
+
+	CONSTRAINT CK_Sustitucion_Jugadores CHECK (id_jugador_sale <> id_jugador_entra),
+    CONSTRAINT CK_Sustitucion_Minuto CHECK (minuto >= 0)
+)
+
 -- Integrante 4
 CREATE TABLE Mundial.Esquema (
     id_esquema INT IDENTITY(1,1) NOT NULL,
