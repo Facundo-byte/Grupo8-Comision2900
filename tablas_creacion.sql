@@ -14,6 +14,92 @@ DROP TABLE IF EXISTS Mundial.Posicion;
 DROP TABLE IF EXISTS Mundial.Esquema;
 GO
 
+-- Integrante 2 
+
+CREATE TABLE Mundial.Partido(
+	id_partido INT IDENTITY(1,1) PRIMARY KEY NOT NULL,
+	id_sede INT NOT NULL, 
+	id_seleccion_local INT NOT NULL, 
+	id_seleccion_visitante INT NOT NULL, 
+	fecha_hora_local DATETIME NOT NULL,
+	fecha_hora_utc DATETIME NOT NULL,
+	goles_local INT,
+	goles_visitante INT,
+	asistencia INT,
+	fase VARCHAR(20) NOT NULL
+    DEFAULT 'fasedegrupos'
+    CHECK (fase IN (
+        'fasedegrupos',
+        'cuartos de final',
+		'octavos de final',
+		'tercer puesto',
+        'semifinal',
+        'final'
+    )),
+
+
+	CONSTRAINT Fk_Partido_Sede FOREIGN KEY(id_sede) REFERENCES Mundial.Sede(id_sede),
+	CONSTRAINT Fk_Partido_Seleccion_Local FOREIGN KEY(id_seleccion_local) REFERENCES Mundial.Seleccion(id_seleccion),
+	CONSTRAINT Fk_Partido_Seleccion_Visitante FOREIGN KEY (id_seleccion_visitante) REFERENCES Mundial.Seleccion(id_seleccion),
+
+	CONSTRAINT CK_Partido_Selecciones CHECK (id_seleccion_local <> id_seleccion_visitante),
+	CONSTRAINT CK_Partido_Goles CHECK (goles_local >= 0 AND goles_visitante >= 0),
+	CONSTRAINT CK_Partido_Asistencia CHECK (asistencia >= 0)
+)
+
+CREATE TABLE Mundial.Gol(
+	id_gol INT PRIMARY KEY IDENTITY(1,1) NOT NULL,
+	id_partido INT NOT NULL, 
+	id_jugador_autor INT NOT NULL, 
+	id_jugador_asistencia INT NULL,
+	minuto INT NOT NULL,
+	periodo VARCHAR(20) NOT NULL
+    CHECK (periodo IN (
+        'Primer tiempo',
+        'Segundo tiempo',
+		'Primer suplementario',
+		'Segundo suplementario'
+    )),
+
+	CONSTRAINT Fk_Gol_Partido FOREIGN KEY(id_partido) REFERENCES Mundial.Partido(id_partido),
+	CONSTRAINT Fk_Gol_Jugador_Autor FOREIGN KEY(id_jugador_autor) REFERENCES Mundial.Jugador(id_jugador),
+	CONSTRAINT Fk_Gol_Jugador_Asistencia FOREIGN KEY(id_jugador_asistencia) REFERENCES Mundial.Jugador(id_jugador),
+
+	CONSTRAINT CK_Gol_Minuto CHECK (minuto >= 0)
+)
+
+CREATE TABLE Mundial.Tarjeta(
+	id_tarjeta INT PRIMARY KEY IDENTITY(1,1) NOT NULL,
+	id_partido INT NOT NULL, 
+	id_jugador INT NOT NULL, 
+	minuto INT NOT NULL,
+	motivo VARCHAR(100),
+	color VARCHAR(20) NOT NULL
+    CHECK (color IN (
+        'Roja',
+        'Amarilla'
+    )),
+
+
+	CONSTRAINT Fk_Tarjeta_Jugador FOREIGN KEY(id_jugador) REFERENCES Mundial.Jugador(id_jugador),
+	CONSTRAINT Fk_Tarjeta_Partido FOREIGN KEY(id_partido) REFERENCES Mundial.Partido(id_partido),
+
+	CONSTRAINT CK_Tarjeta_Minuto CHECK (minuto >= 0)
+);
+
+CREATE TABLE Mundial.Expulsion(
+	id_expulsion INT IDENTITY(1,1) PRIMARY KEY,
+	id_tarjeta INT NOT NULL UNIQUE, 
+	tipoexpulsion VARCHAR(20) NOT NULL
+    CHECK (tipoexpulsion IN (
+        'Doble amarilla',
+        'Roja'
+    )),
+
+	CONSTRAINT Fk_Expulsion_Tarjeta FOREIGN KEY(id_tarjeta) REFERENCES Mundial.Tarjeta(id_tarjeta)
+);
+
+-- Integrante 4
 CREATE TABLE Mundial.Esquema (
     id_esquema INT IDENTITY(1,1) NOT NULL,
     lineas     VARCHAR(15)       NOT NULL,          -- ej. '4-3-3'
@@ -40,7 +126,7 @@ CREATE TABLE Mundial.Formacion (
     id_esquema   INT NOT NULL,
     CONSTRAINT PK_Formacion          PRIMARY KEY (id_formacion),
     CONSTRAINT UQ_Formacion_part_sel UNIQUE (id_partido, id_seleccion),
-    CONSTRAINT FK_Formacion_Partido   FOREIGN KEY (id_partido)   REFERENCES Mundial.Partido(id),
+    CONSTRAINT FK_Formacion_Partido   FOREIGN KEY (id_partido)   REFERENCES Mundial.Partido(id_partido),
     CONSTRAINT FK_Formacion_Seleccion FOREIGN KEY (id_seleccion) REFERENCES Mundial.Seleccion(id),
     CONSTRAINT FK_Formacion_Esquema   FOREIGN KEY (id_esquema)   REFERENCES Mundial.Esquema(id_esquema)
 );
@@ -86,3 +172,7 @@ CREATE TABLE Mundial.Espacio_publicitario (
     CONSTRAINT FK_Espacio_Pais         FOREIGN KEY (id_pais_interes) REFERENCES Mundial.Pais(id_pais)
 );
 GO
+
+-- Tablas provisorias
+
+CREATE TABLE Mundial.
