@@ -1,4 +1,4 @@
-USE MundialDeFutbol;   
+﻿USE MundialDeFutbol;   
 GO
 
 -- CREATE SCHEMA exige ir solo en su lote, por eso se usa EXEC (unico SQL dinamico).
@@ -12,6 +12,242 @@ DROP TABLE IF EXISTS Mundial.Espacio_publicitario;
 DROP TABLE IF EXISTS Mundial.Cuerpo_tecnico;
 DROP TABLE IF EXISTS Mundial.Posicion;
 DROP TABLE IF EXISTS Mundial.Esquema;
+GO
+
+
+/* =============================================================
+   Integrante 3: árbitros e infraestructura
+   Tablas: Confederacion, Sede, Arbitro, Idioma y Terna_Arbitral.
+
+   Se ubican antes de las tablas del Integrante 2 porque
+   Mundial.Partido referencia a Mundial.Sede.
+   Las FK hacia Mundial.Pais y Mundial.Partido se agregan al final
+   de este mismo script.
+   ============================================================= */
+
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+/* Opciones ANSI requeridas por el índice filtrado de Terna_Arbitral.
+   Todo INSERT/UPDATE sobre esa tabla necesita estas opciones activas. */
+SET ANSI_NULLS ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET QUOTED_IDENTIFIER ON;
+SET NUMERIC_ROUNDABORT OFF;
+GO
+
+/* -------------------------------------------------------------
+   1. Confederacion
+   Catálogo de confederaciones continentales (CONMEBOL, UEFA, etc.).
+   ------------------------------------------------------------- */
+IF OBJECT_ID(N'Mundial.Confederacion', N'U') IS NULL
+BEGIN
+    CREATE TABLE Mundial.Confederacion
+    (
+        id_confederacion INT IDENTITY(1,1) NOT NULL,
+        nombre            NVARCHAR(60)     NOT NULL,
+        sigla             VARCHAR(10)      NOT NULL,
+        CONSTRAINT PK_Confederacion PRIMARY KEY (id_confederacion),
+        CONSTRAINT UQ_Confederacion_nombre UNIQUE (nombre),
+        CONSTRAINT UQ_Confederacion_sigla  UNIQUE (sigla),
+        CONSTRAINT CK_Confederacion_nombre CHECK (LEN(LTRIM(RTRIM(nombre))) > 0),
+        CONSTRAINT CK_Confederacion_sigla  CHECK (LEN(sigla) BETWEEN 2 AND 10 AND sigla = UPPER(sigla))
+    );
+    PRINT N'Tabla Mundial.Confederacion creada.';
+END
+ELSE
+    PRINT N'Mundial.Confederacion ya existe: no se modifica.';
+GO
+
+/* -------------------------------------------------------------
+   2. Sede
+   Estadio, ciudad, país, capacidad, huso horario y geolocalización.
+   id_pais queda sin FK hasta la sección final de este script.
+   ------------------------------------------------------------- */
+IF OBJECT_ID(N'Mundial.Sede', N'U') IS NULL
+BEGIN
+    CREATE TABLE Mundial.Sede
+    (
+        id_sede        INT IDENTITY(1,1) NOT NULL,
+        nombre_estadio NVARCHAR(100)     NOT NULL,
+        ciudad         NVARCHAR(100)     NOT NULL,
+        id_pais        INT               NOT NULL,
+        capacidad      INT               NOT NULL,
+        huso_horario   VARCHAR(10)       NOT NULL,
+        latitud        DECIMAL(9,6)      NULL,
+        longitud       DECIMAL(9,6)      NULL,
+        CONSTRAINT PK_Sede PRIMARY KEY (id_sede),
+        CONSTRAINT UQ_Sede_estadio_ciudad_pais UNIQUE (nombre_estadio, ciudad, id_pais),
+        CONSTRAINT CK_Sede_nombre_estadio CHECK (LEN(LTRIM(RTRIM(nombre_estadio))) > 0),
+        CONSTRAINT CK_Sede_ciudad        CHECK (LEN(LTRIM(RTRIM(ciudad))) > 0),
+        CONSTRAINT CK_Sede_capacidad     CHECK (capacidad > 0),
+        CONSTRAINT CK_Sede_huso_horario  CHECK (
+            huso_horario LIKE 'UTC[+-][0-1][0-9]:[0-5][0-9]'
+            AND SUBSTRING(huso_horario, 5, 2) <= '14'
+        ),
+        CONSTRAINT CK_Sede_latitud       CHECK (latitud IS NULL OR latitud BETWEEN -90 AND 90),
+        CONSTRAINT CK_Sede_longitud      CHECK (longitud IS NULL OR longitud BETWEEN -180 AND 180),
+        CONSTRAINT CK_Sede_geolocalizacion CHECK (
+            (latitud IS NULL AND longitud IS NULL)
+            OR (latitud IS NOT NULL AND longitud IS NOT NULL)
+        )
+    );
+    PRINT N'Tabla Mundial.Sede creada.';
+END
+ELSE
+    PRINT N'Mundial.Sede ya existe: no se modifica.';
+GO
+
+/* -------------------------------------------------------------
+   3. Arbitro
+   Árbitro habilitado: datos personales, país de origen,
+   confederación a la que pertenece y categoría.
+   id_pais queda sin FK hasta la sección final de este script.
+   ------------------------------------------------------------- */
+IF OBJECT_ID(N'Mundial.Arbitro', N'U') IS NULL
+BEGIN
+    CREATE TABLE Mundial.Arbitro
+    (
+        id_arbitro       INT IDENTITY(1,1) NOT NULL,
+        nombre           NVARCHAR(50)      NOT NULL,
+        apellido         NVARCHAR(50)      NOT NULL,
+        fecha_nacimiento DATE              NOT NULL,
+        id_pais          INT               NOT NULL,
+        id_confederacion INT               NOT NULL,
+        categoria        NVARCHAR(20)      NOT NULL,
+        habilitado       BIT               NOT NULL
+            CONSTRAINT DF_Arbitro_habilitado DEFAULT (1),
+        CONSTRAINT PK_Arbitro PRIMARY KEY (id_arbitro),
+        CONSTRAINT FK_Arbitro_confederacion FOREIGN KEY (id_confederacion)
+            REFERENCES Mundial.Confederacion (id_confederacion),
+        CONSTRAINT UQ_Arbitro_datos UNIQUE (nombre, apellido, fecha_nacimiento, id_pais),
+        CONSTRAINT CK_Arbitro_nombre   CHECK (LEN(LTRIM(RTRIM(nombre))) > 0),
+        CONSTRAINT CK_Arbitro_apellido CHECK (LEN(LTRIM(RTRIM(apellido))) > 0),
+        CONSTRAINT CK_Arbitro_categoria CHECK (categoria IN (N'FIFA', N'CONFEDERACION'))
+    );
+    PRINT N'Tabla Mundial.Arbitro creada.';
+END
+ELSE
+    PRINT N'Mundial.Arbitro ya existe: no se modifica.';
+GO
+
+/* -------------------------------------------------------------
+   4. Idioma
+   Idiomas que habla cada árbitro. La PK compuesta permite varios
+   idiomas por árbitro sin agregar una sexta tabla.
+   ------------------------------------------------------------- */
+IF OBJECT_ID(N'Mundial.Idioma', N'U') IS NULL
+BEGIN
+    CREATE TABLE Mundial.Idioma
+    (
+        id_arbitro INT          NOT NULL,
+        idioma     NVARCHAR(50) NOT NULL,
+        CONSTRAINT PK_Idioma PRIMARY KEY (id_arbitro, idioma),
+        CONSTRAINT FK_Idioma_arbitro FOREIGN KEY (id_arbitro)
+            REFERENCES Mundial.Arbitro (id_arbitro),
+        CONSTRAINT CK_Idioma_idioma CHECK (LEN(LTRIM(RTRIM(idioma))) > 0)
+    );
+    PRINT N'Tabla Mundial.Idioma creada.';
+END
+ELSE
+    PRINT N'Mundial.Idioma ya existe: no se modifica.';
+GO
+
+/* -------------------------------------------------------------
+   5. Terna_Arbitral
+   Designación arbitral de un partido: principal, dos asistentes,
+   cuarto árbitro y árbitro de VAR. estado = 'Descartada' permite
+   conservar el historial de una designación rechazada (por ejemplo,
+   por conflicto de nacionalidad) sin borrarla.
+   id_partido queda sin FK hasta la sección final de este script.
+   ------------------------------------------------------------- */
+IF OBJECT_ID(N'Mundial.Terna_Arbitral', N'U') IS NULL
+BEGIN
+    CREATE TABLE Mundial.Terna_Arbitral
+    (
+        id_terna             INT IDENTITY(1,1) NOT NULL,
+        id_partido           INT               NOT NULL,
+        id_arbitro_principal INT               NOT NULL,
+        id_asistente_1       INT               NOT NULL,
+        id_asistente_2       INT               NOT NULL,
+        id_cuarto_arbitro    INT               NOT NULL,
+        id_arbitro_var       INT               NOT NULL,
+        estado               NVARCHAR(20)      NOT NULL
+            CONSTRAINT DF_Terna_Arbitral_estado DEFAULT (N'Activa'),
+        motivo_descarte      NVARCHAR(300)     NULL,
+        fecha_designacion    DATETIME2(0)      NOT NULL
+            CONSTRAINT DF_Terna_Arbitral_fecha_designacion DEFAULT (SYSDATETIME()),
+        CONSTRAINT PK_Terna_Arbitral PRIMARY KEY (id_terna),
+        CONSTRAINT FK_Terna_Arbitral_principal FOREIGN KEY (id_arbitro_principal)
+            REFERENCES Mundial.Arbitro (id_arbitro),
+        CONSTRAINT FK_Terna_Arbitral_asistente_1 FOREIGN KEY (id_asistente_1)
+            REFERENCES Mundial.Arbitro (id_arbitro),
+        CONSTRAINT FK_Terna_Arbitral_asistente_2 FOREIGN KEY (id_asistente_2)
+            REFERENCES Mundial.Arbitro (id_arbitro),
+        CONSTRAINT FK_Terna_Arbitral_cuarto FOREIGN KEY (id_cuarto_arbitro)
+            REFERENCES Mundial.Arbitro (id_arbitro),
+        CONSTRAINT FK_Terna_Arbitral_var FOREIGN KEY (id_arbitro_var)
+            REFERENCES Mundial.Arbitro (id_arbitro),
+        CONSTRAINT CK_Terna_Arbitral_estado CHECK (estado IN (N'Activa', N'Descartada')),
+        CONSTRAINT CK_Terna_Arbitral_motivo CHECK (
+            (estado = N'Descartada' AND LEN(LTRIM(RTRIM(motivo_descarte))) > 0)
+            OR (estado = N'Activa' AND motivo_descarte IS NULL)
+        ),
+        CONSTRAINT CK_Terna_Arbitral_distintos CHECK (
+            id_arbitro_principal <> id_asistente_1
+            AND id_arbitro_principal <> id_asistente_2
+            AND id_arbitro_principal <> id_cuarto_arbitro
+            AND id_arbitro_principal <> id_arbitro_var
+            AND id_asistente_1 <> id_asistente_2
+            AND id_asistente_1 <> id_cuarto_arbitro
+            AND id_asistente_1 <> id_arbitro_var
+            AND id_asistente_2 <> id_cuarto_arbitro
+            AND id_asistente_2 <> id_arbitro_var
+            AND id_cuarto_arbitro <> id_arbitro_var
+        )
+    );
+    PRINT N'Tabla Mundial.Terna_Arbitral creada.';
+END
+ELSE
+    PRINT N'Mundial.Terna_Arbitral ya existe: no se modifica.';
+GO
+
+/* Una sola terna ACTIVA por partido. Las descartadas quedan como
+   historial y no compiten por la unicidad (índice filtrado). */
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'UX_Terna_Arbitral_partido_activa'
+      AND object_id = OBJECT_ID(N'Mundial.Terna_Arbitral')
+)
+BEGIN
+    CREATE UNIQUE INDEX UX_Terna_Arbitral_partido_activa
+        ON Mundial.Terna_Arbitral (id_partido)
+        WHERE estado = N'Activa';
+    PRINT N'Índice UX_Terna_Arbitral_partido_activa creado.';
+END
+ELSE
+    PRINT N'UX_Terna_Arbitral_partido_activa ya existe.';
+GO
+
+/* Índice de apoyo para el historial de partidos arbitrados
+   (reporte de la Entrega 7). */
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_Terna_Arbitral_arbitro_principal'
+      AND object_id = OBJECT_ID(N'Mundial.Terna_Arbitral')
+)
+BEGIN
+    CREATE INDEX IX_Terna_Arbitral_arbitro_principal
+        ON Mundial.Terna_Arbitral (id_arbitro_principal)
+        INCLUDE (id_partido, estado);
+    PRINT N'Índice IX_Terna_Arbitral_arbitro_principal creado.';
+END
+ELSE
+    PRINT N'IX_Terna_Arbitral_arbitro_principal ya existe.';
 GO
 
 -- Integrante 2 
@@ -194,6 +430,91 @@ CREATE TABLE Mundial.Espacio_publicitario (
     CONSTRAINT FK_Espacio_Sede         FOREIGN KEY (id_sede)         REFERENCES Mundial.Sede(id),
     CONSTRAINT FK_Espacio_Pais         FOREIGN KEY (id_pais_interes) REFERENCES Mundial.Pais(id_pais)
 );
+GO
+
+
+/* =============================================================
+   Integrante 3: claves foráneas externas
+     Sede.id_pais              -> Pais.id_pais        (Integrante 1)
+     Arbitro.id_pais           -> Pais.id_pais        (Integrante 1)
+     Terna_Arbitral.id_partido -> Partido.id_partido  (Integrante 2)
+
+   Es tolerante: si la tabla destino todavía no existe, avisa por
+   PRINT y deja la FK pendiente para una próxima ejecución.
+   ============================================================= */
+
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+GO
+
+/* Sede.id_pais -> Pais.id_pais */
+IF OBJECT_ID(N'Mundial.Pais', N'U') IS NOT NULL
+   AND COL_LENGTH(N'Mundial.Pais', N'id_pais') IS NOT NULL
+   AND OBJECT_ID(N'Mundial.Sede', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Sede_pais')
+    BEGIN
+        ALTER TABLE Mundial.Sede WITH CHECK
+            ADD CONSTRAINT FK_Sede_pais FOREIGN KEY (id_pais)
+            REFERENCES Mundial.Pais (id_pais);
+        PRINT N'FK_Sede_pais creada.';
+    END
+    ELSE
+        PRINT N'FK_Sede_pais ya existe.';
+END
+ELSE
+    PRINT N'AVISO: FK_Sede_pais pendiente. Falta Mundial.Pais(id_pais) o Mundial.Sede.';
+GO
+
+/* Arbitro.id_pais -> Pais.id_pais */
+IF OBJECT_ID(N'Mundial.Pais', N'U') IS NOT NULL
+   AND COL_LENGTH(N'Mundial.Pais', N'id_pais') IS NOT NULL
+   AND OBJECT_ID(N'Mundial.Arbitro', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Arbitro_pais')
+    BEGIN
+        ALTER TABLE Mundial.Arbitro WITH CHECK
+            ADD CONSTRAINT FK_Arbitro_pais FOREIGN KEY (id_pais)
+            REFERENCES Mundial.Pais (id_pais);
+        PRINT N'FK_Arbitro_pais creada.';
+    END
+    ELSE
+        PRINT N'FK_Arbitro_pais ya existe.';
+END
+ELSE
+    PRINT N'AVISO: FK_Arbitro_pais pendiente. Falta Mundial.Pais(id_pais) o Mundial.Arbitro.';
+GO
+
+/* Terna_Arbitral.id_partido -> Partido.id_partido */
+IF OBJECT_ID(N'Mundial.Partido', N'U') IS NOT NULL
+   AND COL_LENGTH(N'Mundial.Partido', N'id_partido') IS NOT NULL
+   AND OBJECT_ID(N'Mundial.Terna_Arbitral', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Terna_Arbitral_partido')
+    BEGIN
+        ALTER TABLE Mundial.Terna_Arbitral WITH CHECK
+            ADD CONSTRAINT FK_Terna_Arbitral_partido FOREIGN KEY (id_partido)
+            REFERENCES Mundial.Partido (id_partido);
+        PRINT N'FK_Terna_Arbitral_partido creada.';
+    END
+    ELSE
+        PRINT N'FK_Terna_Arbitral_partido ya existe.';
+END
+ELSE
+    PRINT N'AVISO: FK_Terna_Arbitral_partido pendiente. Falta Mundial.Partido(id_partido) o Mundial.Terna_Arbitral.';
+GO
+
+/* Resumen: FK externas que quedaron pendientes. */
+SELECT
+    fk      = N'FK_Sede_pais / FK_Arbitro_pais / FK_Terna_Arbitral_partido',
+    estado  = CASE
+                  WHEN OBJECT_ID(N'Mundial.Pais', N'U') IS NULL THEN N'Pendiente: falta Mundial.Pais'
+                  WHEN OBJECT_ID(N'Mundial.Partido', N'U') IS NULL THEN N'Pendiente: falta Mundial.Partido'
+                  WHEN (SELECT COUNT(*) FROM sys.foreign_keys
+                        WHERE name IN (N'FK_Sede_pais', N'FK_Arbitro_pais', N'FK_Terna_Arbitral_partido')) = 3
+                       THEN N'Completo: las 3 FK existen'
+                  ELSE N'Parcial: revisar los mensajes anteriores'
+              END;
 GO
 
 -- Tablas provisorias
