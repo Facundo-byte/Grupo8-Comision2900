@@ -10,8 +10,7 @@ El proyecto implementa el modelo completo de gestión para un Mundial de Fútbol
 
 Diagrama Entidad-Relación implementado para el sistema:
 
-![Diagrama Entidad-Relación - Mundial de Fútbol](imagenes/der.jpeg)
-
+![Diagrama Entidad-Relación - Mundial de Fútbol](imagen/der.jpeg)
 ---
 
 ## 📁 Cómo está organizado el repo
