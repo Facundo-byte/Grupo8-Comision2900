@@ -6,14 +6,14 @@ El proyecto implementa el modelo completo de gestión para un Mundial de Fútbol
 
 ---
 
-## 🗺️ Modelo de Datos (DER)
+## Modelo de Datos (DER)
 
 Diagrama Entidad-Relación implementado para el sistema:
 
 ![Diagrama Entidad-Relación - Mundial de Fútbol](imagen/der.jpeg)
 ---
 
-## 📁 Cómo está organizado el repo
+## Cómo está organizado el repo
 
 Para que sea fácil de seguir y corregir, numeramos todos los scripts del `01` al `52` según el orden exacto en el que se tienen que ejecutar[cite: 1]:
 
@@ -27,7 +27,7 @@ Para que sea fácil de seguir y corregir, numeramos todos los scripts del `01` a
 
 ---
 
-## 🚀 Orden de ejecución en SSMS
+## Orden de ejecución en SSMS
 
 Para levantar la base desde cero, abrí los archivos en **SQL Server Management Studio** y ejecutalos respetando esta secuencia[cite: 1]:
 
