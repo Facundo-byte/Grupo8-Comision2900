@@ -1,4 +1,4 @@
-# TP Bases de Datos Aplicadas - Mundial de Fútbol ⚽
+# TP Bases de Datos Aplicadas - Mundial de Fútbol 
 
 Repositorio de la entrega del **Grupo 8 (Comisión 2900)** para la materia **Bases de Datos Aplicadas (UNLaM)**.
 
