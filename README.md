@@ -49,3 +49,30 @@ Para levantar la base desde cero, abrí los archivos en **SQL Server Management 
 | **30 *(bis)*** | `seeds/30_seed_arbitros_infra.sql` | **Volver a correr** para generar las ternas arbitrales sobre los partidos recién cargados. |
 | **32** | `seeds/32_seed_posiciones_y_esquemas.sql` | Carga inicial de posiciones y esquemas tácticos. |
 | **33 - 52** | `test/33_...` a `52_...` | Batería de pruebas 1:1 para validar el funcionamiento de todos los SPs. |
+
+## Entrega 6 — Importación de sedes y partidos
+
+Ejecutá `SPs/53_SP_Importacion_CSV_V2.sql` en SSMS para instalar los procedimientos de importación. Antes tienen que estar creadas las tablas, instalados los ABM de País (`03`), Partido (`08`) y Sede (`16`), y cargadas las selecciones del script `28`.
+
+Para importar los datos, hay que ejecutar **primero sedes y después partidos**. Reemplazar `C:\TP\datasets\` por la ruta completa a la carpeta `datasets`. Esta ruta tiene que ser accesible desde SQL Server.
+
+```sql
+USE MundialDeFutbol;
+GO
+
+EXEC Mundial.sp_ImportarSedesCSV_V2
+    @RutaArchivo = N'C:\TP\datasets\sedes_mundial_2026.csv';
+
+EXEC Mundial.sp_ImportarPartidosCSV_V2
+    @RutaArchivo = N'C:\TP\datasets\partidos_mundial_2026.csv';
+```
+
+Cada procedimiento muestra cuántos registros se insertaron, se actualizaron, quedaron sin cambios o se rechazaron. Los CSV de ejemplo incluyen **una fila inválida cada uno** para probar los rechazos. Volver a importar el mismo CSV no duplica los registros.
+
+Para consultar los resultados y el historial de cambios:
+
+```sql
+SELECT *
+FROM Mundial.ImportacionCSV_V2
+ORDER BY id_log DESC;
+```
