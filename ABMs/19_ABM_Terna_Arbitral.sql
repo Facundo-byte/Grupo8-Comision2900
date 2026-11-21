@@ -103,7 +103,7 @@ BEGIN
     IF @estado = N'Activa' AND @id_partido IS NOT NULL
     BEGIN
         DECLARE @conflicto NVARCHAR(400);
-        SELECT @conflicto = STRING_AGG(a.apellido, N', ')
+        SELECT @conflicto = STRING_AGG(a.apellido, ', ')
         FROM @terna AS t
         JOIN Mundial.Arbitro AS a ON a.id_arbitro = t.id_arbitro
         WHERE EXISTS (
@@ -221,7 +221,7 @@ BEGIN
     IF @estado = N'Activa' AND @id_partido IS NOT NULL
     BEGIN
         DECLARE @conflicto NVARCHAR(400);
-        SELECT @conflicto = STRING_AGG(a.apellido, N', ')
+        SELECT @conflicto = STRING_AGG(a.apellido, ', ')
         FROM @terna AS t
         JOIN Mundial.Arbitro AS a ON a.id_arbitro = t.id_arbitro
         WHERE EXISTS (

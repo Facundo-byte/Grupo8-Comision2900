@@ -1,0 +1,6 @@
+nombre_estadio,ciudad,pais,capacidad,huso_horario,latitud,longitud
+Estadio Azteca,Ciudad de Mexico,Mexico,87523,UTC-06:00,19.302861,-99.150528
+SoFi Stadium,Inglewood,Estados Unidos,70240,UTC-07:00,33.953587,-118.339087
+BC Place,Vancouver,Canada,54500,UTC-07:00,49.276750,-123.111999
+MetLife Stadium,East Rutherford,Estados Unidos,82500,UTC-04:00,40.813528,-74.074361
+Estadio FilaError,Ciudad Error,Argentina,-500,UTC-03:00,lat_invalida,-58.381592

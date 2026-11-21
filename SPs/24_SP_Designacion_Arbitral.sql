@@ -86,7 +86,7 @@ BEGIN
         THROW 51010, @errores, 1;
 
     DECLARE @conflicto NVARCHAR(400);
-    SELECT @conflicto = STRING_AGG(a.apellido, N', ')
+    SELECT @conflicto = STRING_AGG(a.apellido, ', ')
     FROM @terna AS t
     JOIN Mundial.Arbitro AS a ON a.id_arbitro = t.id_arbitro
     WHERE a.id_pais IN (

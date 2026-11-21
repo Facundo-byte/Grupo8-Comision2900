@@ -82,11 +82,6 @@ JOIN Mundial.Confederacion AS c ON c.sigla = a.sigla
 WHERE NOT EXISTS (SELECT 1 FROM Mundial.Arbitro AS x WHERE x.nombre = a.nombre AND x.apellido = a.apellido AND x.fecha_nacimiento = a.nacimiento AND x.id_pais = p.id_pais);
 PRINT N'Árbitros cargados: ' + CONVERT(VARCHAR(10), @@ROWCOUNT);
 
-INSERT INTO Mundial.Idioma (id_arbitro, idioma)
-SELECT a.id_arbitro, N'Inglés'
-FROM Mundial.Arbitro AS a
-WHERE NOT EXISTS (SELECT 1 FROM Mundial.Idioma AS x WHERE x.id_arbitro = a.id_arbitro AND x.idioma = N'Inglés');
-
 DECLARE @idiomas TABLE (pais NVARCHAR(60) NOT NULL, idioma NVARCHAR(50) NOT NULL);
 INSERT INTO @idiomas (pais, idioma) VALUES
     (N'Argentina', N'Español'), (N'Brasil', N'Portugués'), (N'Colombia', N'Español'),
@@ -94,26 +89,55 @@ INSERT INTO @idiomas (pais, idioma) VALUES
     (N'Francia', N'Francés'), (N'Alemania', N'Alemán'), (N'Polonia', N'Polaco'),
     (N'Portugal', N'Portugués'), (N'Eslovenia', N'Esloveno'), (N'Japón', N'Japonés'), (N'Marruecos', N'Árabe');
 
+-- La tabla admite un idioma por árbitro. Uso el de su país o inglés si no está en la lista.
 INSERT INTO Mundial.Idioma (id_arbitro, idioma)
-SELECT a.id_arbitro, i.idioma
+SELECT a.id_arbitro, COALESCE(i.idioma, N'Inglés')
 FROM Mundial.Arbitro AS a
 JOIN Mundial.Pais AS p ON p.id_pais = a.id_pais
-JOIN @idiomas AS i ON i.pais = p.nombre
-WHERE NOT EXISTS (SELECT 1 FROM Mundial.Idioma AS x WHERE x.id_arbitro = a.id_arbitro AND x.idioma = i.idioma);
+LEFT JOIN @idiomas AS i ON i.pais = p.nombre
+WHERE NOT EXISTS (SELECT 1 FROM Mundial.Idioma AS x WHERE x.id_arbitro = a.id_arbitro);
 PRINT N'Idiomas cargados: ' + CONVERT(VARCHAR(10), @@ROWCOUNT);
 
 IF OBJECT_ID(N'Mundial.Partido', N'U') IS NOT NULL
 BEGIN
+    ;WITH partidos_seed AS (
+        SELECT TOP (24) id_partido, id_seleccion_local, id_seleccion_visitante
+        FROM Mundial.Partido
+        ORDER BY id_partido
+    ), arbitros_disponibles AS (
+        -- Para cada partido, ordeno una sola vez a los árbitros habilitados y sin conflicto de país.
+        SELECT p.id_partido, a.id_arbitro,
+            ROW_NUMBER() OVER (
+                PARTITION BY p.id_partido
+                ORDER BY (a.id_arbitro * 7 + p.id_partido * 13) % 97, a.id_arbitro
+            ) AS turno
+        FROM partidos_seed AS p
+        CROSS JOIN Mundial.Arbitro AS a
+        WHERE a.habilitado = 1
+          AND NOT EXISTS (
+              SELECT 1 FROM Mundial.Seleccion AS s
+              WHERE s.id_seleccion IN (p.id_seleccion_local, p.id_seleccion_visitante)
+                AND s.id_pais = a.id_pais
+          )
+          AND NOT EXISTS (
+              SELECT 1 FROM Mundial.Terna_Arbitral AS t
+              WHERE t.id_partido = p.id_partido AND t.estado = N'Activa'
+          )
+    )
+    -- Cada puesto tiene un solo árbitro. SUM toma su ID y las demás filas aportan cero.
     INSERT INTO Mundial.Terna_Arbitral
         (id_partido, id_arbitro_principal, id_asistente_1, id_asistente_2, id_cuarto_arbitro, id_arbitro_var, estado, motivo_descarte)
-    SELECT p.id_partido, a1.id_arbitro, a2.id_arbitro, a3.id_arbitro, a4.id_arbitro, a5.id_arbitro, N'Activa', NULL
-    FROM (SELECT TOP (24) id_partido, id_seleccion_local, id_seleccion_visitante FROM Mundial.Partido ORDER BY id_partido) AS p
-    CROSS APPLY (SELECT a.id_arbitro FROM Mundial.Arbitro AS a WHERE a.habilitado = 1 AND NOT EXISTS (SELECT 1 FROM Mundial.Seleccion AS s WHERE s.id_seleccion IN (p.id_seleccion_local, p.id_seleccion_visitante) AND s.id_pais = a.id_pais) ORDER BY (a.id_arbitro * 7 + p.id_partido * 13) % 97, a.id_arbitro OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY) AS a1
-    CROSS APPLY (SELECT a.id_arbitro FROM Mundial.Arbitro AS a WHERE a.habilitado = 1 AND NOT EXISTS (SELECT 1 FROM Mundial.Seleccion AS s WHERE s.id_seleccion IN (p.id_seleccion_local, p.id_seleccion_visitante) AND s.id_pais = a.id_pais) ORDER BY (a.id_arbitro * 7 + p.id_partido * 13) % 97, a.id_arbitro OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY) AS a2
-    CROSS APPLY (SELECT a.id_arbitro FROM Mundial.Arbitro AS a WHERE a.habilitado = 1 AND NOT EXISTS (SELECT 1 FROM Mundial.Seleccion AS s WHERE s.id_seleccion IN (p.id_seleccion_local, p.id_seleccion_visitante) AND s.id_pais = a.id_pais) ORDER BY (a.id_arbitro * 7 + p.id_partido * 13) % 97, a.id_arbitro OFFSET 2 ROWS FETCH NEXT 1 ROWS ONLY) AS a3
-    CROSS APPLY (SELECT a.id_arbitro FROM Mundial.Arbitro AS a WHERE a.habilitado = 1 AND NOT EXISTS (SELECT 1 FROM Mundial.Seleccion AS s WHERE s.id_seleccion IN (p.id_seleccion_local, p.id_seleccion_visitante) AND s.id_pais = a.id_pais) ORDER BY (a.id_arbitro * 7 + p.id_partido * 13) % 97, a.id_arbitro OFFSET 3 ROWS FETCH NEXT 1 ROWS ONLY) AS a4
-    CROSS APPLY (SELECT a.id_arbitro FROM Mundial.Arbitro AS a WHERE a.habilitado = 1 AND NOT EXISTS (SELECT 1 FROM Mundial.Seleccion AS s WHERE s.id_seleccion IN (p.id_seleccion_local, p.id_seleccion_visitante) AND s.id_pais = a.id_pais) ORDER BY (a.id_arbitro * 7 + p.id_partido * 13) % 97, a.id_arbitro OFFSET 4 ROWS FETCH NEXT 1 ROWS ONLY) AS a5
-    WHERE NOT EXISTS (SELECT 1 FROM Mundial.Terna_Arbitral AS t WHERE t.id_partido = p.id_partido AND t.estado = N'Activa');
+    SELECT id_partido,
+        SUM(CASE WHEN turno = 1 THEN id_arbitro ELSE 0 END),
+        SUM(CASE WHEN turno = 2 THEN id_arbitro ELSE 0 END),
+        SUM(CASE WHEN turno = 3 THEN id_arbitro ELSE 0 END),
+        SUM(CASE WHEN turno = 4 THEN id_arbitro ELSE 0 END),
+        SUM(CASE WHEN turno = 5 THEN id_arbitro ELSE 0 END),
+        N'Activa', NULL
+    FROM arbitros_disponibles
+    WHERE turno <= 5
+    GROUP BY id_partido
+    HAVING COUNT(*) = 5;
     PRINT N'Ternas activas cargadas: ' + CONVERT(VARCHAR(10), @@ROWCOUNT);
 END
 GO
