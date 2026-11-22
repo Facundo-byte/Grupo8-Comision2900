@@ -1,0 +1,42 @@
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - default
+      - mssql_net
+
+  sql_exporter:
+    image: burningalchemist/sql_exporter:latest
+    volumes:
+      - ./sql_exporter.yml:/sql_exporter.yml:ro
+    command: ["-config.file=/sql_exporter.yml"]
+    ports:
+      - "9399:9399"
+    networks:
+      - default
+      - mssql_net
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=grupo8
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - default
+      - mssql_net
+
+volumes:
+  grafana_data:
+
+networks:
+  mssql_net:
+    external: true
+    name: bbddaplicada_default

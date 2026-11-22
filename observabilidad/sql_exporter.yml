@@ -1,0 +1,28 @@
+global:
+  scrape_timeout: 10s
+
+target:
+  data_source_name: "sqlserver://sa:superAdmin_0@mssql:1433?database=MundialDeFutbol&encrypt=disable"
+  collectors: [mssql_standard]
+
+collectors:
+  - collector_name: mssql_standard
+    metrics:
+      - metric_name: mssql_batch_requests
+        type: counter
+        help: "Batch Requests/sec"
+        values: [cntr_value]
+        query: |
+          SELECT cntr_value
+          FROM sys.dm_os_performance_counters
+          WHERE counter_name = 'Batch Requests/sec'
+            AND object_name LIKE '%SQL Statistics%'
+
+      - metric_name: mssql_user_connections
+        type: gauge
+        help: "User connections"
+        values: [cntr_value]
+        query: |
+          SELECT cntr_value
+          FROM sys.dm_os_performance_counters
+          WHERE counter_name = 'User Connections'
