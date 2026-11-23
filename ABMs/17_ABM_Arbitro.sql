@@ -19,7 +19,7 @@ SET QUOTED_IDENTIFIER ON;
 SET NUMERIC_ROUNDABORT OFF;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.Arbitro_Alta
+CREATE OR ALTER PROCEDURE MfSPabm.Arbitro_Alta
     @nombre           NVARCHAR(200),
     @apellido         NVARCHAR(200),
     @fecha_nacimiento DATE,
@@ -27,7 +27,7 @@ CREATE OR ALTER PROCEDURE Mundial.Arbitro_Alta
     @id_confederacion INT,
     @categoria        NVARCHAR(50),
     @habilitado       BIT = 1,
-    @id_arbitro       INT = NULL OUTPUT
+    @id_idioma        INT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -91,28 +91,33 @@ BEGIN
     IF @habilitado IS NULL
         SET @errores += N'habilitado es obligatorio (1 = habilitado, 0 = inhabilitado). ';
 
+    IF @id_idioma IS NULL
+        SET @errores += N'idioma es obligatorio. ';
+
     IF @nombre IS NOT NULL AND @apellido IS NOT NULL
-       AND @fecha_nacimiento IS NOT NULL AND @id_pais IS NOT NULL
+       AND @fecha_nacimiento IS NOT NULL AND @id_pais IS NOT NULL AND @id_idioma IS NOT NULL
        AND EXISTS (
             SELECT 1 FROM Mundial.Arbitro
             WHERE nombre = @nombre
               AND apellido = @apellido
               AND fecha_nacimiento = @fecha_nacimiento
               AND id_pais = @id_pais
+              AND id_idioma = @id_idioma
        )
+       Begin
         SET @errores += N'Ya existe un árbitro con ese nombre, apellido, fecha de nacimiento y país. ';
+        end
 
     IF @errores <> N''
         THROW 50801, @errores, 1;
 
-    INSERT INTO Mundial.Arbitro (nombre, apellido, fecha_nacimiento, id_pais, id_confederacion, categoria, habilitado)
-    VALUES (@nombre, @apellido, @fecha_nacimiento, @id_pais, @id_confederacion, @categoria, @habilitado);
+    INSERT INTO Mundial.Arbitro (nombre, apellido, fecha_nacimiento, id_pais, id_confederacion, categoria, habilitado, id_idioma)
+    VALUES (@nombre, @apellido, @fecha_nacimiento, @id_pais, @id_confederacion, @categoria, @habilitado, @id_idioma);
 
-    SET @id_arbitro = CONVERT(INT, SCOPE_IDENTITY());
 END;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.Arbitro_Modificar
+CREATE OR ALTER PROCEDURE MfSPabm.Arbitro_Modificar
     @id_arbitro       INT,
     @nombre           NVARCHAR(200),
     @apellido         NVARCHAR(200),
@@ -120,7 +125,8 @@ CREATE OR ALTER PROCEDURE Mundial.Arbitro_Modificar
     @id_pais          INT,
     @id_confederacion INT,
     @categoria        NVARCHAR(50),
-    @habilitado       BIT
+    @habilitado       BIT,
+    @id_idioma        INT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -197,8 +203,11 @@ BEGIN
         )
         SET @errores += N'No se puede inhabilitar al árbitro: tiene ternas activas asignadas. ';
 
+    IF @id_idioma IS NULL
+        SET @errores += N'idioma es obligatorio. ';
+
     IF @nombre IS NOT NULL AND @apellido IS NOT NULL
-       AND @fecha_nacimiento IS NOT NULL AND @id_pais IS NOT NULL
+       AND @fecha_nacimiento IS NOT NULL AND @id_pais IS NOT NULL AND @id_idioma IS NOT NULL
        AND EXISTS (
             SELECT 1 FROM Mundial.Arbitro
             WHERE nombre = @nombre
@@ -206,6 +215,7 @@ BEGIN
               AND fecha_nacimiento = @fecha_nacimiento
               AND id_pais = @id_pais
               AND id_arbitro <> @id_arbitro
+              AND id_idioma <> @id_idioma
        )
         SET @errores += N'Ya existe otro árbitro con ese nombre, apellido, fecha de nacimiento y país. ';
 
@@ -219,7 +229,8 @@ BEGIN
         id_pais          = @id_pais,
         id_confederacion = @id_confederacion,
         categoria        = @categoria,
-        habilitado       = @habilitado
+        habilitado       = @habilitado,
+        id_idioma        = @id_idioma
     WHERE id_arbitro = @id_arbitro;
 
     IF @@ERROR = 0 AND @@ROWCOUNT = 0
@@ -227,7 +238,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.Arbitro_Baja
+CREATE OR ALTER PROCEDURE MfSPabm.Arbitro_Baja
     @id_arbitro INT
 AS
 BEGIN
@@ -252,9 +263,6 @@ BEGIN
 
     BEGIN TRY
         BEGIN TRANSACTION;
-
-            DELETE FROM Mundial.Idioma
-            WHERE id_arbitro = @id_arbitro;
 
             DELETE FROM Mundial.Arbitro
             WHERE id_arbitro = @id_arbitro;

@@ -10,7 +10,7 @@
 USE MundialDeFutbol;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.usp_Posicion_Alta
+CREATE OR ALTER PROCEDURE MfSPabm.usp_Posicion_Alta
     @nombre VARCHAR(30),
     @abreviatura VARCHAR(5),
     @mensaje VARCHAR(500) = NULL OUTPUT
@@ -42,7 +42,7 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.usp_Posicion_Modificacion
+CREATE OR ALTER PROCEDURE MfSPabm.usp_Posicion_Modificacion
     @id_posicion INT,
     @nombre VARCHAR(30),
     @abreviatura VARCHAR(5),
@@ -80,7 +80,7 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.usp_Posicion_Baja
+CREATE OR ALTER PROCEDURE MfSPabm.usp_Posicion_Baja
     @id_posicion INT
 AS
 BEGIN

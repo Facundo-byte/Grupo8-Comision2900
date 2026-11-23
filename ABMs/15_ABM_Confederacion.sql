@@ -19,7 +19,7 @@ SET QUOTED_IDENTIFIER ON;
 SET NUMERIC_ROUNDABORT OFF;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.Confederacion_Alta
+CREATE OR ALTER PROCEDURE MfSPabm.Confederacion_Alta
     @nombre            NVARCHAR(400),
     @sigla             VARCHAR(50),
     @id_confederacion  INT = NULL OUTPUT
@@ -70,7 +70,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.Confederacion_Modificar
+CREATE OR ALTER PROCEDURE MfSPabm.Confederacion_Modificar
     @id_confederacion INT,
     @nombre            NVARCHAR(400),
     @sigla             VARCHAR(50)
@@ -137,7 +137,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.Confederacion_Baja
+CREATE OR ALTER PROCEDURE MfSPabm.Confederacion_Baja
     @id_confederacion INT
 AS
 BEGIN

@@ -16,28 +16,33 @@ CREATE OR ALTER PROCEDURE Mundial.Partido_Alta
     @id_seleccion_visitante INT,
     @fecha_hora_local DATETIME,
     @fecha_hora_utc DATETIME,
-    @goles_local INT = NULL,
-    @goles_visitante INT = NULL,
-    @asistencia INT = NULL,
     @fase VARCHAR(MAX) = 'fasedegrupos',
     @id_partido INT = NULL OUTPUT
 AS
 BEGIN
+    SET NOCOUNT ON;
+
     DECLARE @errores NVARCHAR(2048) = N'';
 
     IF @id_sede IS NULL
         SET @errores += N'id_sede es obligatorio. ';
-    IF @id_sede IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Mundial.Sede WHERE id_sede = @id_sede)
+    IF @id_sede IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM Mundial.Sede WHERE id_sede = @id_sede
+    )
         SET @errores += N'id_sede no existe en Mundial.Sede. ';
 
     IF @id_seleccion_local IS NULL
         SET @errores += N'id_seleccion_local es obligatorio. ';
-    IF @id_seleccion_local IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Mundial.Seleccion WHERE id_seleccion = @id_seleccion_local)
+    IF @id_seleccion_local IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM Mundial.Seleccion WHERE id_seleccion = @id_seleccion_local
+    )
         SET @errores += N'id_seleccion_local no existe en Mundial.Seleccion. ';
 
     IF @id_seleccion_visitante IS NULL
         SET @errores += N'id_seleccion_visitante es obligatorio. ';
-    IF @id_seleccion_visitante IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Mundial.Seleccion WHERE id_seleccion = @id_seleccion_visitante)
+    IF @id_seleccion_visitante IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM Mundial.Seleccion WHERE id_seleccion = @id_seleccion_visitante
+    )
         SET @errores += N'id_seleccion_visitante no existe en Mundial.Seleccion. ';
 
     IF @id_seleccion_local = @id_seleccion_visitante
@@ -45,20 +50,23 @@ BEGIN
 
     IF @fecha_hora_local IS NULL
         SET @errores += N'fecha_hora_local es obligatorio. ';
+
     IF @fecha_hora_utc IS NULL
         SET @errores += N'fecha_hora_utc es obligatorio. ';
 
-    IF @goles_local < 0
-        SET @errores += N'goles_local debe ser mayor o igual a cero. ';
-    IF @goles_visitante < 0
-        SET @errores += N'goles_visitante debe ser mayor o igual a cero. ';
-    IF @asistencia < 0
-        SET @errores += N'asistencia debe ser mayor o igual a cero. ';
-
     IF @fase IS NULL
         SET @errores += N'fase es obligatorio. ';
-    IF @fase IS NOT NULL AND @fase NOT IN ('fasedegrupos', 'cuartos de final', 'octavos de final', 'tercer puesto', 'semifinal', 'final')
+
+    IF @fase IS NOT NULL AND @fase NOT IN (
+        'fasedegrupos',
+        'cuartos de final',
+        'octavos de final',
+        'tercer puesto',
+        'semifinal',
+        'final'
+    )
         SET @errores += N'fase debe ser uno de estos valores: fasedegrupos, cuartos de final, octavos de final, tercer puesto, semifinal, final. ';
+
     IF DATALENGTH(@fase) > 20
         SET @errores += N'fase supera los 20 bytes que admite la columna. ';
 
@@ -66,9 +74,11 @@ BEGIN
         THROW 50101, @errores, 1;
 
     INSERT INTO Mundial.Partido
-        (id_sede, id_seleccion_local, id_seleccion_visitante, fecha_hora_local, fecha_hora_utc, goles_local, goles_visitante, asistencia, fase)
+        (id_sede, id_seleccion_local, id_seleccion_visitante,
+         fecha_hora_local, fecha_hora_utc,fase)
     VALUES
-        (@id_sede, @id_seleccion_local, @id_seleccion_visitante, @fecha_hora_local, @fecha_hora_utc, @goles_local, @goles_visitante, @asistencia, @fase);
+        (@id_sede, @id_seleccion_local, @id_seleccion_visitante,
+         @fecha_hora_local, @fecha_hora_utc, @fase);
 
     IF @@ROWCOUNT = 1
         SET @id_partido = CONVERT(INT, SCOPE_IDENTITY());
@@ -82,32 +92,40 @@ CREATE OR ALTER PROCEDURE Mundial.Partido_Modificar
     @id_seleccion_visitante INT,
     @fecha_hora_local DATETIME,
     @fecha_hora_utc DATETIME,
-    @goles_local INT = NULL,
-    @goles_visitante INT = NULL,
     @asistencia INT = NULL,
     @fase VARCHAR(MAX) = 'fasedegrupos'
 AS
 BEGIN
+    SET NOCOUNT ON;
+
     DECLARE @errores NVARCHAR(2048) = N'';
 
     IF @id_partido IS NULL
         SET @errores += N'id_partido es obligatorio. ';
-    IF @id_partido IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Mundial.Partido WHERE id_partido = @id_partido)
+    IF @id_partido IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM Mundial.Partido WHERE id_partido = @id_partido
+    )
         SET @errores += N'id_partido no existe en Mundial.Partido. ';
 
     IF @id_sede IS NULL
         SET @errores += N'id_sede es obligatorio. ';
-    IF @id_sede IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Mundial.Sede WHERE id_sede = @id_sede)
+    IF @id_sede IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM Mundial.Sede WHERE id_sede = @id_sede
+    )
         SET @errores += N'id_sede no existe en Mundial.Sede. ';
 
     IF @id_seleccion_local IS NULL
         SET @errores += N'id_seleccion_local es obligatorio. ';
-    IF @id_seleccion_local IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Mundial.Seleccion WHERE id_seleccion = @id_seleccion_local)
+    IF @id_seleccion_local IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM Mundial.Seleccion WHERE id_seleccion = @id_seleccion_local
+    )
         SET @errores += N'id_seleccion_local no existe en Mundial.Seleccion. ';
 
     IF @id_seleccion_visitante IS NULL
         SET @errores += N'id_seleccion_visitante es obligatorio. ';
-    IF @id_seleccion_visitante IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Mundial.Seleccion WHERE id_seleccion = @id_seleccion_visitante)
+    IF @id_seleccion_visitante IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM Mundial.Seleccion WHERE id_seleccion = @id_seleccion_visitante
+    )
         SET @errores += N'id_seleccion_visitante no existe en Mundial.Seleccion. ';
 
     IF @id_seleccion_local = @id_seleccion_visitante
@@ -115,20 +133,26 @@ BEGIN
 
     IF @fecha_hora_local IS NULL
         SET @errores += N'fecha_hora_local es obligatorio. ';
+
     IF @fecha_hora_utc IS NULL
         SET @errores += N'fecha_hora_utc es obligatorio. ';
 
-    IF @goles_local < 0
-        SET @errores += N'goles_local debe ser mayor o igual a cero. ';
-    IF @goles_visitante < 0
-        SET @errores += N'goles_visitante debe ser mayor o igual a cero. ';
     IF @asistencia < 0
         SET @errores += N'asistencia debe ser mayor o igual a cero. ';
 
     IF @fase IS NULL
         SET @errores += N'fase es obligatorio. ';
-    IF @fase IS NOT NULL AND @fase NOT IN ('fasedegrupos', 'cuartos de final', 'octavos de final', 'tercer puesto', 'semifinal', 'final')
+
+    IF @fase IS NOT NULL AND @fase NOT IN (
+        'fasedegrupos',
+        'cuartos de final',
+        'octavos de final',
+        'tercer puesto',
+        'semifinal',
+        'final'
+    )
         SET @errores += N'fase debe ser uno de estos valores: fasedegrupos, cuartos de final, octavos de final, tercer puesto, semifinal, final. ';
+
     IF DATALENGTH(@fase) > 20
         SET @errores += N'fase supera los 20 bytes que admite la columna. ';
 
@@ -136,18 +160,18 @@ BEGIN
         THROW 50102, @errores, 1;
 
     UPDATE Mundial.Partido
-    SET id_sede = @id_sede,
+    SET
+        id_sede = @id_sede,
         id_seleccion_local = @id_seleccion_local,
         id_seleccion_visitante = @id_seleccion_visitante,
         fecha_hora_local = @fecha_hora_local,
         fecha_hora_utc = @fecha_hora_utc,
-        goles_local = @goles_local,
-        goles_visitante = @goles_visitante,
         asistencia = @asistencia,
         fase = @fase
     WHERE id_partido = @id_partido
       AND NOT EXISTS (
-        SELECT 1 FROM Mundial.Sustitucion WITH (HOLDLOCK)
+        SELECT 1
+        FROM Mundial.Sustitucion WITH (HOLDLOCK)
         WHERE id_partido = @id_partido
           AND id_seleccion NOT IN (@id_seleccion_local, @id_seleccion_visitante)
     );

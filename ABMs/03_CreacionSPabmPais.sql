@@ -13,9 +13,10 @@ GO
 CREATE OR ALTER PROCEDURE MfSPabm.altaPais (@nombrePais VARCHAR(30))
 AS
 BEGIN
-    DECLARE @errorCount INT = 0;
+    DECLARE @errorCount INT = 0
+    SET @nombrePais = LTRIM(RTRIM(@nombrePais))
 
-    IF(@nombrePais IS NULL OR LTRIM(RTRIM(@nombrePais)) = '')
+    IF(@nombrePais IS NULL OR @nombrePais = '')
     BEGIN
         SET @errorCount = @errorCount + 1;
         PRINT 'ERROR: Nombre invalido.';

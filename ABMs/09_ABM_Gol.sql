@@ -15,6 +15,7 @@ CREATE OR ALTER PROCEDURE Mundial.Gol_Alta
     @id_jugador_autor INT,
     @id_jugador_asistencia INT = NULL,
     @minuto INT,
+    @tipo VARCHAR(50),
     @periodo VARCHAR(MAX),
     @id_gol INT = NULL OUTPUT
 AS
@@ -30,9 +31,34 @@ BEGIN
         SET @errores += N'id_jugador_autor es obligatorio. ';
     IF @id_jugador_autor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Mundial.Jugador WHERE id_jugador = @id_jugador_autor)
         SET @errores += N'id_jugador_autor no existe en Mundial.Jugador. ';
+    -- Validación: el autor debe pertenecer a una de las 2 selecciones del partido
+    IF @id_jugador_autor IS NOT NULL AND @id_partido IS NOT NULL
+       AND NOT EXISTS (
+           SELECT 1
+           FROM Mundial.Jugador j
+           INNER JOIN Mundial.ListaConvocados lc ON lc.id_lista = j.id_lista_convocados
+           INNER JOIN Mundial.Seleccion s        ON s.id_seleccion = lc.id_seleccion
+           INNER JOIN Mundial.Partido p          ON p.id_partido = @id_partido
+           WHERE j.id_jugador = @id_jugador_autor
+             AND s.id_seleccion IN (p.id_seleccion_local, p.id_seleccion_visitante)
+       )
+    SET @errores += N'id_jugador_autor no pertenece a ninguna de las selecciones del partido en disputa. ';
 
     IF @id_jugador_asistencia IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Mundial.Jugador WHERE id_jugador = @id_jugador_asistencia)
         SET @errores += N'id_jugador_asistencia no existe en Mundial.Jugador. ';
+
+    -- Validación: el asistente debe pertenecer a una de las 2 selecciones del partido
+    IF @id_jugador_asistencia IS NOT NULL AND @id_partido IS NOT NULL
+       AND NOT EXISTS (
+           SELECT 1
+           FROM Mundial.Jugador j
+           INNER JOIN Mundial.ListaConvocados lc ON lc.id_lista = j.id_lista_convocados
+           INNER JOIN Mundial.Seleccion s        ON s.id_seleccion = lc.id_seleccion
+           INNER JOIN Mundial.Partido p          ON p.id_partido = @id_partido
+           WHERE j.id_jugador = @id_jugador_asistencia
+             AND s.id_seleccion IN (p.id_seleccion_local, p.id_seleccion_visitante)
+       )
+    SET @errores += N'@id_jugador_asistencia no pertenece a ninguna de las selecciones del partido en disputa. ';
 
     IF @id_jugador_autor = @id_jugador_asistencia
         SET @errores += N'El autor y el asistente deben ser distintos. ';
@@ -42,6 +68,10 @@ BEGIN
     IF @minuto < 0
         SET @errores += N'minuto debe ser mayor o igual a cero. ';
 
+    IF @tipo IS NULL
+        SET @errores += N'tipo es obligatorio. ';
+    IF @tipo IS NOT NULL AND @tipo NOT IN ('Jugada','Penal','Tiro libre','En contra','Cabezazo')
+        SET @errores += N'tipo debe ser uno de estos valores: Jugada, Penal, Tiro libre, En contra, Cabezazo. ';
     IF @periodo IS NULL
         SET @errores += N'periodo es obligatorio. ';
     IF @periodo IS NOT NULL AND @periodo NOT IN ('Primer tiempo', 'Segundo tiempo', 'Primer suplementario', 'Segundo suplementario')
@@ -53,9 +83,9 @@ BEGIN
         THROW 50201, @errores, 1;
 
     INSERT INTO Mundial.Gol
-        (id_partido, id_jugador_autor, id_jugador_asistencia, minuto, periodo)
+        (id_partido, id_jugador_autor, id_jugador_asistencia, minuto, tipo, periodo)
     VALUES
-        (@id_partido, @id_jugador_autor, @id_jugador_asistencia, @minuto, @periodo);
+        (@id_partido, @id_jugador_autor, @id_jugador_asistencia, @minuto, @tipo, @periodo);
 
     IF @@ROWCOUNT = 1
         SET @id_gol = CONVERT(INT, SCOPE_IDENTITY());
@@ -68,6 +98,7 @@ CREATE OR ALTER PROCEDURE Mundial.Gol_Modificar
     @id_jugador_autor INT,
     @id_jugador_asistencia INT = NULL,
     @minuto INT,
+    @tipo VARCHAR(50),
     @periodo VARCHAR(MAX)
 AS
 BEGIN
@@ -98,7 +129,10 @@ BEGIN
         SET @errores += N'minuto es obligatorio. ';
     IF @minuto < 0
         SET @errores += N'minuto debe ser mayor o igual a cero. ';
-
+    IF @tipo IS NULL
+        SET @errores += N'tipo es obligatorio. ';
+    IF @tipo IS NOT NULL AND @tipo NOT IN ('Jugada','Penal','Tiro libre','En contra','Cabezazo')
+        SET @errores += N'tipo debe ser uno de estos valores: Jugada, Penal, Tiro libre, En contra, Cabezazo. ';
     IF @periodo IS NULL
         SET @errores += N'periodo es obligatorio. ';
     IF @periodo IS NOT NULL AND @periodo NOT IN ('Primer tiempo', 'Segundo tiempo', 'Primer suplementario', 'Segundo suplementario')
@@ -114,6 +148,7 @@ BEGIN
         id_jugador_autor = @id_jugador_autor,
         id_jugador_asistencia = @id_jugador_asistencia,
         minuto = @minuto,
+        tipo = @tipo,
         periodo = @periodo
     WHERE id_gol = @id_gol;
 

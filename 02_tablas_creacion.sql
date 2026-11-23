@@ -42,10 +42,12 @@ CREATE TABLE Mundial.Pais
 (
     id_pais INT IDENTITY(1,1) NOT NULL,
     nombre  VARCHAR(60)       NOT NULL,
+    huso_horario VARCHAR(20),
     CONSTRAINT PK_Pais PRIMARY KEY (id_pais),
     CONSTRAINT UQ_Pais_nombre UNIQUE (nombre)
 );
 GO
+
 
 CREATE TABLE Mundial.Seleccion
 (
@@ -58,6 +60,8 @@ CREATE TABLE Mundial.Seleccion
     CONSTRAINT FK_Seleccion_Pais FOREIGN KEY (id_pais) REFERENCES Mundial.Pais (id_pais)
 );
 GO
+
+
 
 CREATE TABLE Mundial.ListaConvocados
 (
@@ -80,6 +84,123 @@ CREATE TABLE Mundial.Jugador
     CONSTRAINT PK_Jugador PRIMARY KEY (id_jugador),
     CONSTRAINT FK_Jugador_ListaConvocados FOREIGN KEY (id_lista_convocados) REFERENCES Mundial.ListaConvocados (id_lista)
 );
+GO
+
+ALTER TABLE Mundial.Jugador
+    ADD id_posicion INT NULL,
+        CONSTRAINT FK_Jugador_Posicion FOREIGN KEY (id_posicion) REFERENCES Mundial.Posicion(id_posicion);
+GO
+
+USE MundialDeFutbol;
+GO
+
+/* ============================================================
+   ASIGNACIÓN DE POSICIÓN A LOS 128 JUGADORES
+   (posición real según su rol en la cancha)
+   ============================================================ */
+
+-- 1) Tabla con (país, apellido, nombre de posición)
+DECLARE @PosicionesJugadores TABLE (
+    fila         INT IDENTITY(1,1) PRIMARY KEY,
+    nombrePais   VARCHAR(30),
+    apellido     VARCHAR(50),
+    posicion     VARCHAR(30)
+);
+
+INSERT INTO @PosicionesJugadores (nombrePais, apellido, posicion) VALUES
+-- GRUPO A
+('Japon',         'Gonda',         'Arquero'),
+('Japon',         'Kubo',          'Mediocampista ofensivo'),
+('Japon',         'Mitoma',        'Extremo izquierdo'),
+('Japon',         'Endo',          'Mediocampista defensivo'),
+
+-- GRUPO B
+
+('USA','Turner',        'Arquero'),
+('USA','Pulisic',       'Extremo izquierdo'),
+('USA','McKennie',      'Mediocampista central'),
+('USA','Adams',         'Mediocampista defensivo'),
+
+('Costa de Marfil',       'Onana',         'Arquero'),
+('Costa de Marfil',       'Aboubakar',     'Delantero centro'),
+('Costa de Marfil',       'Toko Ekambi',   'Extremo izquierdo'),
+('Costa de Marfil',       'Zambo Anguissa','Mediocampista defensivo'),
+-- GRUPO G
+('Paises Bajos',  'Verbruggen',    'Arquero'),
+('Paises Bajos',  'van Dijk',      'Defensor central'),
+('Paises Bajos',  'de Jong',       'Mediocampista central'),
+('Paises Bajos',  'Gakpo',         'Extremo izquierdo'),
+('Noruega',     'Schmeichel',    'Arquero'),
+('Noruega',     'Eriksen',       'Mediocampista ofensivo'),
+('Noruega',     'Højlund',       'Delantero centro'),
+('Noruega',     'Højbjerg',      'Mediocampista defensivo');
+
+-- 2) Recorro con WHILE
+DECLARE @fila        INT = 0;
+DECLARE @totalFilas  INT;
+DECLARE @nombrePais  VARCHAR(30);
+DECLARE @apellido    VARCHAR(50);
+DECLARE @posicion    VARCHAR(30);
+DECLARE @idLista     INT;
+DECLARE @idJugador   INT;
+DECLARE @idPosicion  INT;
+
+SELECT @totalFilas = MAX(fila) FROM @PosicionesJugadores;
+
+WHILE @fila < @totalFilas
+BEGIN
+    SET @fila = @fila + 1;
+
+    SELECT
+        @nombrePais = nombrePais,
+        @apellido   = apellido,
+        @posicion   = posicion
+    FROM @PosicionesJugadores
+    WHERE fila = @fila;
+
+    -- Resuelvo la lista de convocados del país
+    SELECT @idLista = lc.id_lista
+    FROM Mundial.ListaConvocados lc
+    INNER JOIN Mundial.Seleccion s ON s.id_seleccion = lc.id_seleccion
+    INNER JOIN Mundial.Pais p      ON p.id_pais       = s.id_pais
+    WHERE p.nombre = @nombrePais;
+
+    IF @idLista IS NULL
+    BEGIN
+        PRINT '  SKIP: no hay lista para ' + @nombrePais;
+        CONTINUE;
+    END
+
+    -- Resuelvo el jugador por apellido dentro de la lista
+    SELECT @idJugador = j.id_jugador
+    FROM Mundial.Jugador j
+    WHERE j.id_lista_convocados = @idLista
+      AND j.apellido = @apellido;
+
+    IF @idJugador IS NULL
+    BEGIN
+        PRINT '  SKIP: jugador ' + @apellido + ' no encontrado en ' + @nombrePais;
+        CONTINUE;
+    END
+
+    -- Resuelvo la posición por nombre
+    SELECT @idPosicion = id_posicion
+    FROM Mundial.Posicion
+    WHERE nombre = @posicion;
+
+    IF @idPosicion IS NULL
+    BEGIN
+        PRINT '  SKIP: posición ' + @posicion + ' no encontrada';
+        CONTINUE;
+    END
+
+    -- UPDATE del jugador
+    UPDATE Mundial.Jugador
+    SET id_posicion = @idPosicion
+    WHERE id_jugador = @idJugador;
+
+    PRINT '--- ' + @nombrePais + ' | ' + @apellido + ' -> ' + @posicion + ' (id=' + CONVERT(VARCHAR(3), @idPosicion) + ') ---';
+END
 GO
 
 CREATE TABLE Mundial.AltasBajasConvocados
@@ -109,6 +230,9 @@ CREATE TABLE Mundial.Confederacion
 );
 GO
 
+select * from Mundial.Confederacion
+go
+
 CREATE TABLE Mundial.Sede
 (
     id_sede INT IDENTITY(1,1) PRIMARY KEY,
@@ -125,6 +249,14 @@ CREATE TABLE Mundial.Sede
 );
 GO
 
+
+CREATE TABLE Mundial.Idioma
+(
+    id_idioma INT IDENTITY(1,1) PRIMARY KEY,
+    idioma VARCHAR(50) NOT NULL
+);
+GO
+
 CREATE TABLE Mundial.Arbitro
 (
     id_arbitro INT IDENTITY(1,1) PRIMARY KEY,
@@ -133,42 +265,61 @@ CREATE TABLE Mundial.Arbitro
     fecha_nacimiento DATE NOT NULL,
     id_pais INT NOT NULL,
     id_confederacion INT NOT NULL,
+    id_idioma INT NOT NULL,
     categoria VARCHAR(20) NOT NULL,
     habilitado BIT NOT NULL DEFAULT (1),
     CONSTRAINT UQ_Arbitro_datos UNIQUE (nombre, apellido, fecha_nacimiento, id_pais),
     CONSTRAINT FK_Arbitro_Pais FOREIGN KEY (id_pais) REFERENCES Mundial.Pais (id_pais),
     CONSTRAINT FK_Arbitro_Confederacion FOREIGN KEY (id_confederacion) REFERENCES Mundial.Confederacion (id_confederacion),
+    CONSTRAINT FK_Arbitro_Idioma FOREIGN KEY (id_idioma) REFERENCES Mundial.Idioma (id_idioma),
     CONSTRAINT CK_Arbitro_categoria CHECK (categoria IN ('FIFA', 'CONFEDERACION'))
 );
 GO
 
-CREATE TABLE Mundial.Idioma
-(
-    id_arbitro INT PRIMARY KEY,
-    idioma VARCHAR(50) NOT NULL,
-    CONSTRAINT FK_Idioma_Arbitro FOREIGN KEY (id_arbitro) REFERENCES Mundial.Arbitro (id_arbitro)
-);
-GO
+select * from Mundial.Arbitro
+go
 
 CREATE TABLE Mundial.Terna_Arbitral
 (
     id_terna INT IDENTITY(1,1) PRIMARY KEY,
     id_partido INT NOT NULL,
-    id_arbitro_principal INT NOT NULL,
-    id_asistente_1 INT NOT NULL,
-    id_asistente_2 INT NOT NULL,
-    id_cuarto_arbitro INT NOT NULL,
-    id_arbitro_var INT NOT NULL,
     estado VARCHAR(20) NOT NULL DEFAULT ('Activa'),
     motivo_descarte VARCHAR(300) NULL,
     fecha_designacion DATETIME2(0) NOT NULL DEFAULT (SYSDATETIME()),
-    CONSTRAINT FK_Terna_Arbitral_Principal FOREIGN KEY (id_arbitro_principal) REFERENCES Mundial.Arbitro (id_arbitro),
-    CONSTRAINT FK_Terna_Arbitral_Asistente1 FOREIGN KEY (id_asistente_1) REFERENCES Mundial.Arbitro (id_arbitro),
-    CONSTRAINT FK_Terna_Arbitral_Asistente2 FOREIGN KEY (id_asistente_2) REFERENCES Mundial.Arbitro (id_arbitro),
-    CONSTRAINT FK_Terna_Arbitral_Cuarto FOREIGN KEY (id_cuarto_arbitro) REFERENCES Mundial.Arbitro (id_arbitro),
-    CONSTRAINT FK_Terna_Arbitral_VAR FOREIGN KEY (id_arbitro_var) REFERENCES Mundial.Arbitro (id_arbitro),
-    CONSTRAINT CK_Terna_Arbitral_estado CHECK (estado IN ('Activa', 'Descartada'))
+    CONSTRAINT CK_Terna_Arbitral_estado CHECK (estado IN ('Activa', 'Descartada')),
+    CONSTRAINT FK_Terna_Arbitral_Partido FOREIGN KEY (id_partido) REFERENCES Mundial.Partido(id_partido),
+    CONSTRAINT UQ_Terna_Arbitral_partido UNIQUE (id_partido)
 );
+GO
+
+select * from Mundial.Terna_Arbitral
+go
+
+CREATE TABLE Mundial.Arbitro_Terna
+(
+    id_terna INT NOT NULL,
+    id_arbitro INT NOT NULL,
+    rol VARCHAR(30) NOT NULL,
+    CONSTRAINT PK_Arbitro_Terna
+        PRIMARY KEY (id_terna, id_arbitro),
+    CONSTRAINT FK_Arbitro_Terna_Terna
+        FOREIGN KEY (id_terna)
+        REFERENCES Mundial.Terna_Arbitral (id_terna),
+        CONSTRAINT FK_Arbitro_Terna_Arbitro
+        FOREIGN KEY (id_arbitro)
+        REFERENCES Mundial.Arbitro (id_arbitro),
+        CONSTRAINT CK_Arbitro_Terna_Rol
+        CHECK (rol IN (
+            'Principal',
+            'Asistente 1',
+            'Asistente 2',
+            'Cuarto arbitro',
+            'VAR'
+        ))
+);
+GO
+
+DROP TABLE Mundial.Arbitro_Terna;
 GO
 
 -- Integrante 2
@@ -179,9 +330,6 @@ CREATE TABLE Mundial.Partido(
 	id_seleccion_visitante INT NOT NULL, 
 	fecha_hora_local DATETIME NOT NULL,
 	fecha_hora_utc DATETIME NOT NULL,
-	goles_local INT,
-	goles_visitante INT,
-	asistencia INT,
 	fase VARCHAR(20) NOT NULL
     DEFAULT 'fasedegrupos'
     CHECK (fase IN (
@@ -196,11 +344,20 @@ CREATE TABLE Mundial.Partido(
 	CONSTRAINT Fk_Partido_Sede FOREIGN KEY(id_sede) REFERENCES Mundial.Sede(id_sede),
 	CONSTRAINT Fk_Partido_Seleccion_Local FOREIGN KEY(id_seleccion_local) REFERENCES Mundial.Seleccion(id_seleccion),
 	CONSTRAINT Fk_Partido_Seleccion_Visitante FOREIGN KEY (id_seleccion_visitante) REFERENCES Mundial.Seleccion(id_seleccion),
-
-	CONSTRAINT CK_Partido_Selecciones CHECK (id_seleccion_local <> id_seleccion_visitante),
-	CONSTRAINT CK_Partido_Goles CHECK (goles_local >= 0 AND goles_visitante >= 0),
-	CONSTRAINT CK_Partido_Asistencia CHECK (asistencia >= 0)
+	CONSTRAINT CK_Partido_Selecciones CHECK (id_seleccion_local <> id_seleccion_visitante)
 );
+go
+
+DECLARE @id_jugador_autor INT, @id_partido INT;
+SET @id_jugador_autor = 2;
+SET @id_partido = 1;
+select apellido from Mundial.Jugador j
+    join Mundial.ListaConvocados lc on j.id_lista_convocados = lc.id_lista
+    join Mundial.Seleccion s on s.id_seleccion = lc.id_seleccion
+    join Mundial.Partido p on p.id_partido = @id_partido
+    AND s.id_seleccion IN (p.id_seleccion_local,p.id_seleccion_visitante)
+    WHERE j.id_jugador = @id_jugador_autor
+go
 
 CREATE TABLE Mundial.Gol(
 	id_gol INT PRIMARY KEY IDENTITY(1,1) NOT NULL,
@@ -208,6 +365,14 @@ CREATE TABLE Mundial.Gol(
 	id_jugador_autor INT NOT NULL, 
 	id_jugador_asistencia INT NULL,
 	minuto INT NOT NULL,
+    tipo VARCHAR(50) NOT NULL CHECK(
+    tipo IN(
+        'Jugada',
+        'Penal',
+        'Tiro libre',
+        'En contra',
+        'Cabezazo'
+    )),
 	periodo VARCHAR(20) NOT NULL
     CHECK (periodo IN (
         'Primer tiempo',
@@ -222,6 +387,9 @@ CREATE TABLE Mundial.Gol(
 
 	CONSTRAINT CK_Gol_Minuto CHECK (minuto >= 0)
 );
+
+select * from Mundial.Gol
+go
 
 CREATE TABLE Mundial.Tarjeta(
 	id_tarjeta INT PRIMARY KEY IDENTITY(1,1) NOT NULL,
@@ -322,17 +490,23 @@ CREATE TABLE Mundial.Jugador_Formacion (
 );
 GO
 
+
 CREATE TABLE Mundial.Cuerpo_tecnico (
-    id_cuerpo_tecnico INT IDENTITY(1,1) NOT NULL,
-    id_seleccion      INT         NOT NULL,
+    id_cuerpo_tecnico INT IDENTITY(1,1) PRIMARY KEY NOT NULL,
+    id_seleccion      INT UNIQUE NOT NULL,
+    CONSTRAINT FK_CuerpoTec_Seleccion FOREIGN KEY (id_seleccion) REFERENCES Mundial.Seleccion(id_seleccion)
+);
+GO
+
+
+CREATE TABLE Mundial.Tecnico (
+    id_tecnico INT IDENTITY(1,1) PRIMARY KEY NOT NULL,
+    id_cuerpo_tecnico      INT NOT NULL,
     nombre            VARCHAR(50) NOT NULL,
     apellido          VARCHAR(50) NOT NULL,
     rol               VARCHAR(25) NOT NULL,
-    CONSTRAINT PK_Cuerpo_tecnico     PRIMARY KEY (id_cuerpo_tecnico),
-    CONSTRAINT UQ_Cuerpo_tecnico_per UNIQUE (id_seleccion, nombre, apellido),
-    CONSTRAINT CK_Cuerpo_tecnico_rol CHECK (rol IN ('DT','AYUDANTE','PREPARADOR_FISICO','ENTRENADOR_ARQUEROS','MEDICO')),
-    CONSTRAINT FK_CuerpoTec_Seleccion FOREIGN KEY (id_seleccion) REFERENCES Mundial.Seleccion(id_seleccion)
-);
+    CONSTRAINT FK_Tecnico_Cuerpotecnico FOREIGN KEY (id_cuerpo_tecnico) REFERENCES Mundial.Cuerpo_tecnico(id_cuerpo_tecnico),
+    CONSTRAINT CK_Cuerpo_tecnico_rol CHECK (rol IN ('DT','AYUDANTE','PREPARADOR_FISICO','ENTRENADOR_ARQUEROS','MEDICO')))
 GO
 
 CREATE TABLE Mundial.Espacio_publicitario (

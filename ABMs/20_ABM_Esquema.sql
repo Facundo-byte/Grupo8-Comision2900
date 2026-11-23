@@ -10,7 +10,7 @@
 USE MundialDeFutbol;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.usp_Esquema_Alta
+CREATE OR ALTER PROCEDURE MfSPabm.usp_Esquema_Alta
     @lineas VARCHAR(15)
 AS
 BEGIN
@@ -35,7 +35,7 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.usp_Esquema_Modificacion
+CREATE OR ALTER PROCEDURE MfSPabm.usp_Esquema_Modificacion
     @id_esquema INT,
     @lineas VARCHAR(15)
 AS
@@ -68,7 +68,7 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.usp_Esquema_Baja
+CREATE OR ALTER PROCEDURE MfSPabm.usp_Esquema_Baja
     @id_esquema INT
 AS
 BEGIN
