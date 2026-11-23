@@ -10,7 +10,7 @@
 USE MundialDeFutbol;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.Tarjeta_Alta
+CREATE OR ALTER PROCEDURE MfSPabm.Tarjeta_Alta
     @id_partido INT,
     @id_jugador INT,
     @minuto INT,
@@ -30,6 +30,18 @@ BEGIN
         SET @errores += N'id_jugador es obligatorio. ';
     IF @id_jugador IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Mundial.Jugador WHERE id_jugador = @id_jugador)
         SET @errores += N'id_jugador no existe en Mundial.Jugador. ';
+    -- Validación: el autor debe pertenecer a una de las 2 selecciones del partido
+    IF @id_jugador IS NOT NULL AND @id_partido IS NOT NULL
+       AND NOT EXISTS (
+           SELECT 1
+           FROM Mundial.Jugador j
+           INNER JOIN Mundial.ListaConvocados lc ON lc.id_lista = j.id_lista_convocados
+           INNER JOIN Mundial.Seleccion s        ON s.id_seleccion = lc.id_seleccion
+           INNER JOIN Mundial.Partido p          ON p.id_partido = @id_partido
+           WHERE j.id_jugador = @id_jugador
+             AND s.id_seleccion IN (p.id_seleccion_local, p.id_seleccion_visitante)
+       )
+    SET @errores += N'id_jugador no pertenece a ninguna de las selecciones del partido en disputa. ';
 
     IF @minuto IS NULL
         SET @errores += N'minuto es obligatorio. ';
@@ -59,7 +71,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.Tarjeta_Modificar
+CREATE OR ALTER PROCEDURE MfSPabm.Tarjeta_Modificar
     @id_tarjeta INT,
     @id_partido INT,
     @id_jugador INT,
@@ -116,7 +128,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.Tarjeta_Baja
+CREATE OR ALTER PROCEDURE MfSPabm.Tarjeta_Baja
     @id_tarjeta INT
 AS
 BEGIN

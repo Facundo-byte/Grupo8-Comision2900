@@ -10,7 +10,7 @@
 USE MundialDeFutbol;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.usp_Espacio_publicitario_Alta
+CREATE OR ALTER PROCEDURE MfSPabm.usp_Espacio_publicitario_Alta
     @id_sede INT,
     @numero_espacio TINYINT,
     @descripcion VARCHAR(100) = NULL,
@@ -47,7 +47,7 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.usp_Espacio_publicitario_Modificacion
+CREATE OR ALTER PROCEDURE MfSPabm.usp_Espacio_publicitario_Modificacion
     @id_espacio INT,
     @descripcion VARCHAR(100) = NULL,
     @id_pais_interes INT = NULL
@@ -75,7 +75,7 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.usp_Espacio_publicitario_Baja
+CREATE OR ALTER PROCEDURE MfSPabm.usp_Espacio_publicitario_Baja
     @id_espacio INT
 AS
 BEGIN

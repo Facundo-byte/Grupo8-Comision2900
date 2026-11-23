@@ -10,7 +10,7 @@
 USE MundialDeFutbol;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.Expulsion_Alta
+CREATE OR ALTER PROCEDURE MfSPabm.Expulsion_Alta
     @id_tarjeta INT,
     @tipoexpulsion VARCHAR(MAX),
     @id_expulsion INT = NULL OUTPUT
@@ -88,7 +88,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.Expulsion_Modificar
+CREATE OR ALTER PROCEDURE MfSPabm.Expulsion_Modificar
     @id_expulsion INT,
     @id_tarjeta INT,
     @tipoexpulsion VARCHAR(MAX)
@@ -168,7 +168,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.Expulsion_Baja
+CREATE OR ALTER PROCEDURE MfSPabm.Expulsion_Baja
     @id_expulsion INT
 AS
 BEGIN

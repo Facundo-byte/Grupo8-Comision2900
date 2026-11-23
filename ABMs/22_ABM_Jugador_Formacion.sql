@@ -10,7 +10,7 @@
 USE MundialDeFutbol;
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.usp_Jugador_Formacion_Alta
+CREATE OR ALTER PROCEDURE MfSPabm.usp_Jugador_Formacion_Alta
     @id_formacion INT,
     @id_jugador INT,
     @id_posicion INT,
@@ -77,7 +77,7 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.usp_Jugador_Formacion_Modificacion
+CREATE OR ALTER PROCEDURE MfSPabm.usp_Jugador_Formacion_Modificacion
     @id_formacion INT,
     @id_jugador INT,
     @id_posicion INT,
@@ -130,7 +130,7 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE Mundial.usp_Jugador_Formacion_Baja
+CREATE OR ALTER PROCEDURE MfSPabm.usp_Jugador_Formacion_Baja
     @id_formacion INT,
     @id_jugador INT
 AS
