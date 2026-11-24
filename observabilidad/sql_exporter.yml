@@ -1,0 +1,90 @@
+global:
+  scrape_timeout: 10s
+
+target:
+  data_source_name: "sqlserver://sa:superAdmin_0@mssql:1433?database=MundialDeFutbol&encrypt=disable"
+  collectors: [mssql_standard]
+
+collectors:
+  - collector_name: mssql_standard
+    metrics:
+      - metric_name: mssql_batch_requests
+        type: counter
+        help: "Batch Requests/sec"
+        values: [cntr_value]
+        query: |
+          SELECT cntr_value
+          FROM sys.dm_os_performance_counters
+          WHERE counter_name = 'Batch Requests/sec'
+            AND object_name LIKE '%SQL Statistics%'
+
+      - metric_name: mssql_user_connections
+        type: gauge
+        help: "User connections"
+        values: [cntr_value]
+        query: |
+          SELECT cntr_value
+          FROM sys.dm_os_performance_counters
+          WHERE counter_name = 'User Connections'
+
+      - metric_name: mssql_db_size_mb
+        type: gauge
+        help: "Tamaño total de la base de datos en MB"
+        values: [size_mb]
+        query: |
+          SELECT CAST (SUM(size) * 8.0 / 1024 AS DECIMAL(18,2)) AS size_mb
+          FROM sys.database_files
+
+      - metric_name: mssql_db_log_size_mb
+        type: gauge
+        help: "Tamaño del log en MB"
+        values: [size_mb]
+        query: |
+          SELECT CAST (SUM(size) * 8.0 / 1024 AS DECIMAL(18,2)) AS size_mb
+          FROM sys.database_files
+          WHERE type_desc = 'LOG'
+
+      - metric_name: mssql_active_locks
+        type: gauge
+        help: "Locks activos en la instancia"
+        values: [locks]
+        query: |
+          SELECT COUNT(*) AS locks
+          FROM sys.dm_tran_locks
+
+      - metric_name: mssql_buffer_cache_hit_ratio
+        type: gauge
+        help: "Buffer cache hit ratio (%)"
+        values: [hit_ratio]
+        query: |
+          SELECT CAST(
+            (a.cntr_value * 100.0) / NULLIF(b.cntr_value, 0)
+            AS DECIMAL(18,2)
+          ) AS hit_ratio
+          FROM sys.dm_os_performance_counters a
+          JOIN sys.dm_os_performance_counters b
+          ON a.object_name = b.object_name
+          WHERE a.counter_name = 'Buffer cache hit ratio'
+          AND b.counter_name = 'Buffer cache hit ratio base'
+
+      - metric_name: mssql_wait_time_ms
+        type: counter
+        help: "Tiempo acumulado de espera en ms por tipo"
+        key_labels: [wait_type]
+        values: [wait_time_ms]
+        query: |
+          SELECT TOP 20
+            wait_type,
+            wait_time_ms
+          FROM sys.dm_os_wait_stats
+          WHERE wait_type NOT IN (
+            'SLEEP_TASK','BROKER_TASK_STOP','BROKER_TO_FLUSH','SQLTRACE_BUFFER_FLUSH',
+            'CLR_AUTO_EVENT','CLR_MANUAL_EVENT','LAZYWRITER_SLEEP','WAITFOR',
+            'SLEEP_SYSTEMTASK','SLEEP_BPOOL_FLUSH','XE_TIMER_EVENT','XE_DISPATCHER_WAIT',
+            'BROKER_EVENTHANDLER','DISPATCHER_QUEUE_SEMAPHORE','FT_IFTS_SCHEDULER_IDLE_WAIT',
+            'HADR_FILESTREAM_IOMGR_IOCOMPLETION','DIRTY_PAGE_POLL','SP_SERVER_DIAGNOSTICS_SLEEP',
+            'QDS_PERSIST_TASK_MAIN_LOOP_SLEEP','QDS_CLEANUP_STALE_QUERIES_TASK_MAIN_LOOP_SLEEP',
+            'REQUEST_FOR_DEADLOCK_SEARCH','LOGMGR_QUEUE','CHECKPOINT_QUEUE','XE_DISPATCHER_JOIN'
+          )
+          AND wait_time_ms > 0
+          ORDER BY wait_time_ms DESC

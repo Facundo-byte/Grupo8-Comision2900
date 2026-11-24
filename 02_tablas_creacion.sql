@@ -287,9 +287,16 @@ CREATE TABLE Mundial.Terna_Arbitral
     motivo_descarte VARCHAR(300) NULL,
     fecha_designacion DATETIME2(0) NOT NULL DEFAULT (SYSDATETIME()),
     CONSTRAINT CK_Terna_Arbitral_estado CHECK (estado IN ('Activa', 'Descartada')),
-    CONSTRAINT FK_Terna_Arbitral_Partido FOREIGN KEY (id_partido) REFERENCES Mundial.Partido(id_partido),
-    CONSTRAINT UQ_Terna_Arbitral_partido UNIQUE (id_partido)
+    CONSTRAINT CK_Terna_Arbitral_motivo CHECK (
+        (estado = 'Descartada' AND LEN(LTRIM(RTRIM(motivo_descarte))) > 0)
+        OR (estado = 'Activa' AND motivo_descarte IS NULL)
+    )
 );
+GO
+
+CREATE UNIQUE INDEX UX_Terna_Arbitral_partido_activa
+    ON Mundial.Terna_Arbitral (id_partido)
+    WHERE estado = 'Activa';
 GO
 
 select * from Mundial.Terna_Arbitral
@@ -317,9 +324,6 @@ CREATE TABLE Mundial.Arbitro_Terna
             'VAR'
         ))
 );
-GO
-
-DROP TABLE Mundial.Arbitro_Terna;
 GO
 
 -- Integrante 2

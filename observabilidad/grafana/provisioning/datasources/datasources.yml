@@ -1,0 +1,27 @@
+apiVersion: 1
+
+datasources:
+  - name: MSSQL
+    uid: ag51bo0hwcphce
+    type: mssql
+    access: proxy
+    url: mssql:1433
+    user: sa
+    isDefault: true
+    jsonData:
+      database: MundialDeFutbol
+      encrypt: "disable"
+      authenticationType: "SQL Server Authentication"
+      maxOpenConns: 100
+      maxIdleConns: 100
+      connMaxLifetime: 14400
+    secureJsonData:
+      password: superAdmin_0
+
+  - name: Prometheus
+    uid: fg51bx8eu4vswb
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    jsonData:
+      httpMethod: POST

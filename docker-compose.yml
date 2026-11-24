@@ -1,0 +1,78 @@
+# Stack unificado TP Mundial de Fútbol - Grupo 8
+# Levanta SQL Server + observabilidad/BI (Prometheus, sql_exporter, Grafana)
+#
+# Uso:
+#   docker compose up -d
+#   node scripts/run-all.js
+#
+# Accesos:
+#   SQL Server: localhost:1433 (sa / superAdmin_0)
+#   Grafana:    http://localhost:3000 (grupo8 / admin)
+#   Prometheus: http://localhost:9090
+#   sql_exporter metrics: http://localhost:9399/metrics
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: superAdmin_0
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: tp-prometheus
+    depends_on:
+      sql_exporter:
+        condition: service_started
+    volumes:
+      - ./observabilidad/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  sql_exporter:
+    image: burningalchemist/sql_exporter:latest
+    container_name: tp-sql-exporter
+    depends_on:
+      mssql:
+        condition: service_healthy
+    volumes:
+      - ./observabilidad/sql_exporter.yml:/sql_exporter.yml:ro
+    command: ["-config.file=/sql_exporter.yml"]
+    ports:
+      - "9399:9399"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: tp-grafana
+    depends_on:
+      mssql:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: grupo8
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observabilidad/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observabilidad/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    restart: unless-stopped
+
+volumes:
+  mssql_data:
+  grafana_data:

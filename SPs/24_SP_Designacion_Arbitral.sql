@@ -50,13 +50,13 @@ BEGIN
     IF @id_partido IS NOT NULL AND @fase IS NULL
         SET @errores += N'id_partido no existe en Mundial.Partido. ';
 
-    DECLARE @terna TABLE (rol VARCHAR(20) NOT NULL, id_arbitro INT NULL);
+    DECLARE @terna TABLE (rol VARCHAR(30) NOT NULL, id_arbitro INT NULL);
     INSERT INTO @terna (rol, id_arbitro)
-    VALUES (N'principal',  @id_arbitro_principal),
-           (N'asistente_1', @id_asistente_1),
-           (N'asistente_2', @id_asistente_2),
-           (N'cuarto_arbitro', @id_cuarto_arbitro),
-           (N'arbitro_var', @id_arbitro_var);
+    VALUES (N'Principal',      @id_arbitro_principal),
+           (N'Asistente 1',    @id_asistente_1),
+           (N'Asistente 2',    @id_asistente_2),
+           (N'Cuarto arbitro', @id_cuarto_arbitro),
+           (N'VAR',            @id_arbitro_var);
 
     DECLARE @roles_sin_id NVARCHAR(200);
     SELECT @roles_sin_id = STRING_AGG(rol, ', ') FROM @terna WHERE id_arbitro IS NULL;
@@ -102,21 +102,20 @@ BEGIN
 
         BEGIN TRY
             BEGIN TRANSACTION;
-
-                INSERT INTO Mundial.Terna_Arbitral
-                    (id_partido, id_arbitro_principal, id_asistente_1, id_asistente_2,
-                     id_cuarto_arbitro, id_arbitro_var, estado, motivo_descarte)
-                VALUES
-                    (@id_partido, @id_arbitro_principal, @id_asistente_1, @id_asistente_2,
-                     @id_cuarto_arbitro, @id_arbitro_var, N'Descartada', LEFT(@conflicto, 300));
-
+                INSERT INTO Mundial.Terna_Arbitral (id_partido, estado, motivo_descarte)
+                VALUES (@id_partido, N'Descartada', LEFT(@conflicto, 300));
                 SET @id_terna = CONVERT(INT, SCOPE_IDENTITY());
 
+                INSERT INTO Mundial.Arbitro_Terna (id_terna, id_arbitro, rol)
+                VALUES (@id_terna, @id_arbitro_principal, N'Principal'),
+                       (@id_terna, @id_asistente_1,       N'Asistente 1'),
+                       (@id_terna, @id_asistente_2,       N'Asistente 2'),
+                       (@id_terna, @id_cuarto_arbitro,    N'Cuarto arbitro'),
+                       (@id_terna, @id_arbitro_var,       N'VAR');
             COMMIT TRANSACTION;
         END TRY
         BEGIN CATCH
-            IF @@TRANCOUNT > 0
-                ROLLBACK TRANSACTION;
+            IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
             THROW;
         END CATCH
 
@@ -125,28 +124,26 @@ BEGIN
 
     IF EXISTS (
         SELECT 1 FROM Mundial.Terna_Arbitral
-        WHERE id_partido = @id_partido
-          AND estado = N'Activa'
+        WHERE id_partido = @id_partido AND estado = N'Activa'
     )
         THROW 51012, N'El partido ya tiene una terna activa. Para cambiarla, primero se debe dar de baja. ', 1;
 
     BEGIN TRY
         BEGIN TRANSACTION;
-
-            INSERT INTO Mundial.Terna_Arbitral
-                (id_partido, id_arbitro_principal, id_asistente_1, id_asistente_2,
-                 id_cuarto_arbitro, id_arbitro_var, estado, motivo_descarte)
-            VALUES
-                (@id_partido, @id_arbitro_principal, @id_asistente_1, @id_asistente_2,
-                 @id_cuarto_arbitro, @id_arbitro_var, N'Activa', NULL);
-
+            INSERT INTO Mundial.Terna_Arbitral (id_partido, estado, motivo_descarte)
+            VALUES (@id_partido, N'Activa', NULL);
             SET @id_terna = CONVERT(INT, SCOPE_IDENTITY());
 
+            INSERT INTO Mundial.Arbitro_Terna (id_terna, id_arbitro, rol)
+            VALUES (@id_terna, @id_arbitro_principal, N'Principal'),
+                   (@id_terna, @id_asistente_1,       N'Asistente 1'),
+                   (@id_terna, @id_asistente_2,       N'Asistente 2'),
+                   (@id_terna, @id_cuarto_arbitro,    N'Cuarto arbitro'),
+                   (@id_terna, @id_arbitro_var,       N'VAR');
         COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
         THROW;
     END CATCH
 
