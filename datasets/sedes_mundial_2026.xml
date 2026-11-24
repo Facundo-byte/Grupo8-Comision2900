@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sedes>
+  <sede
+    nombre_estadio="Estadio Azteca"
+    ciudad="Ciudad de Mexico"
+    pais="Mexico"
+    capacidad="87523"
+    huso_horario="UTC-06:00"
+    latitud="19.302861"
+    longitud="-99.150528" />
+  <sede
+    nombre_estadio="SoFi Stadium"
+    ciudad="Inglewood"
+    pais="Estados Unidos"
+    capacidad="70240"
+    huso_horario="UTC-07:00"
+    latitud="33.953587"
+    longitud="-118.339087" />
+  <sede
+    nombre_estadio="BC Place"
+    ciudad="Vancouver"
+    pais="Canada"
+    capacidad="54500"
+    huso_horario="UTC-07:00"
+    latitud="49.276750"
+    longitud="-123.111999" />
+  <sede
+    nombre_estadio="MetLife Stadium"
+    ciudad="East Rutherford"
+    pais="Estados Unidos"
+    capacidad="82500"
+    huso_horario="UTC-04:00"
+    latitud="40.813528"
+    longitud="-74.074361" />
+  <sede
+    nombre_estadio="Estadio FilaError"
+    ciudad="Ciudad Error"
+    pais="Argentina"
+    capacidad="-500"
+    huso_horario="UTC-03:00"
+    latitud="lat_invalida"
+    longitud="-58.381592" />
+</sedes>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<partidos>
+  <partido
+    estadio="Estadio Azteca"
+    pais_local="Mexico"
+    pais_visitante="Argentina"
+    fecha_utc="2026-06-18 22:00:00"
+    offset_min="-360"
+    goles_local="1"
+    goles_visitante="2"
+    asistencia="85000"
+    fase="fasedegrupos" />
+  <partido
+    estadio="SoFi Stadium"
+    pais_local="Estados Unidos"
+    pais_visitante="Brasil"
+    fecha_utc="2026-06-20 01:00:00"
+    offset_min="-420"
+    goles_local="1"
+    goles_visitante="3"
+    asistencia="69500"
+    fase="fasedegrupos" />
+  <partido
+    estadio="Estadio Inexistente"
+    pais_local="Argentina"
+    pais_visitante="Brasil"
+    fecha_utc="2026-06-22 20:00:00"
+    offset_min="-180"
+    goles_local="2"
+    goles_visitante="2"
+    asistencia="70000"
+    fase="fasedegrupos" />
+  <partido
+    estadio="MetLife Stadium"
+    pais_local="Brasil"
+    pais_visitante="Mexico"
+    fecha_utc="2026-07-05 20:00:00"
+    offset_min="-240"
+    goles_local="2"
+    goles_visitante="0"
+    asistencia="81000"
+    fase="cuartos de final" />
+</partidos>
