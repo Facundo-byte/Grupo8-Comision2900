@@ -308,16 +308,14 @@ BEGIN
             IF @idPartido IS NULL
                 EXEC Mundial.Partido_Alta @id_sede = @idSede, @id_seleccion_local = @idLocal,
                     @id_seleccion_visitante = @idVisitante, @fecha_hora_local = @fechaLocal,
-                    @fecha_hora_utc = @fechaUTC, @goles_local = @golesLocal, @goles_visitante = @golesVisitante,
-                    @asistencia = @asistencia, @fase = @fase, @id_partido = @idPartido OUTPUT;
+                    @fecha_hora_utc = @fechaUTC, @fase = @fase, @id_partido = @idPartido OUTPUT;
             ELSE
             BEGIN
                 SET @antes = (SELECT * FROM Mundial.Partido WHERE id_partido = @idPartido
                     FOR JSON PATH, INCLUDE_NULL_VALUES, WITHOUT_ARRAY_WRAPPER);
                 EXEC Mundial.Partido_Modificar @id_partido = @idPartido, @id_sede = @idSede,
                     @id_seleccion_local = @idLocal, @id_seleccion_visitante = @idVisitante,
-                    @fecha_hora_local = @fechaLocal, @fecha_hora_utc = @fechaUTC, @goles_local = @golesLocal,
-                    @goles_visitante = @golesVisitante, @asistencia = @asistencia, @fase = @fase;
+                    @fecha_hora_local = @fechaLocal, @fecha_hora_utc = @fechaUTC, @fase = @fase;
             END;
 
             -- Leo cómo quedó el partido y lo comparo con lo que había antes del ABM.

@@ -92,7 +92,6 @@ CREATE OR ALTER PROCEDURE Mundial.Partido_Modificar
     @id_seleccion_visitante INT,
     @fecha_hora_local DATETIME,
     @fecha_hora_utc DATETIME,
-    @asistencia INT = NULL,
     @fase VARCHAR(MAX) = 'fasedegrupos'
 AS
 BEGIN
@@ -137,9 +136,6 @@ BEGIN
     IF @fecha_hora_utc IS NULL
         SET @errores += N'fecha_hora_utc es obligatorio. ';
 
-    IF @asistencia < 0
-        SET @errores += N'asistencia debe ser mayor o igual a cero. ';
-
     IF @fase IS NULL
         SET @errores += N'fase es obligatorio. ';
 
@@ -166,7 +162,6 @@ BEGIN
         id_seleccion_visitante = @id_seleccion_visitante,
         fecha_hora_local = @fecha_hora_local,
         fecha_hora_utc = @fecha_hora_utc,
-        asistencia = @asistencia,
         fase = @fase
     WHERE id_partido = @id_partido
       AND NOT EXISTS (
