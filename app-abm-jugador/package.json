@@ -1,0 +1,15 @@
+{
+  "name": "app-abm-jugador",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ABM simple de Mundial.Jugador - Entrega 9 Grupo 8",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "mssql": "^11.0.1"
+  }
+}

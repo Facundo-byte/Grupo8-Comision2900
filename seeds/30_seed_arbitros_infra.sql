@@ -100,6 +100,9 @@ PRINT N'Idiomas cargados: ' + CONVERT(VARCHAR(10), @@ROWCOUNT);
 
 IF OBJECT_ID(N'Mundial.Partido', N'U') IS NOT NULL
 BEGIN
+    IF OBJECT_ID(N'tempdb..#terna_seed') IS NOT NULL DROP TABLE #terna_seed;
+    IF OBJECT_ID(N'tempdb..#terna_insertada') IS NOT NULL DROP TABLE #terna_insertada;
+
     ;WITH partidos_seed AS (
         SELECT TOP (24) id_partido, id_seleccion_local, id_seleccion_visitante
         FROM Mundial.Partido
@@ -124,20 +127,43 @@ BEGIN
               WHERE t.id_partido = p.id_partido AND t.estado = N'Activa'
           )
     )
-    -- Cada puesto tiene un solo árbitro. SUM toma su ID y las demás filas aportan cero.
-    INSERT INTO Mundial.Terna_Arbitral
-        (id_partido, id_arbitro_principal, id_asistente_1, id_asistente_2, id_cuarto_arbitro, id_arbitro_var, estado, motivo_descarte)
-    SELECT id_partido,
-        SUM(CASE WHEN turno = 1 THEN id_arbitro ELSE 0 END),
-        SUM(CASE WHEN turno = 2 THEN id_arbitro ELSE 0 END),
-        SUM(CASE WHEN turno = 3 THEN id_arbitro ELSE 0 END),
-        SUM(CASE WHEN turno = 4 THEN id_arbitro ELSE 0 END),
-        SUM(CASE WHEN turno = 5 THEN id_arbitro ELSE 0 END),
-        N'Activa', NULL
+    SELECT id_partido, id_arbitro, turno
+    INTO #terna_seed
     FROM arbitros_disponibles
     WHERE turno <= 5
-    GROUP BY id_partido
-    HAVING COUNT(*) = 5;
-    PRINT N'Ternas activas cargadas: ' + CONVERT(VARCHAR(10), @@ROWCOUNT);
+      AND id_partido IN (
+          SELECT id_partido
+          FROM arbitros_disponibles
+          WHERE turno <= 5
+          GROUP BY id_partido
+          HAVING COUNT(*) = 5
+      );
+
+    CREATE TABLE #terna_insertada (
+        id_terna INT NOT NULL,
+        id_partido INT NOT NULL
+    );
+
+    INSERT INTO Mundial.Terna_Arbitral (id_partido, estado, motivo_descarte)
+    OUTPUT inserted.id_terna, inserted.id_partido INTO #terna_insertada (id_terna, id_partido)
+    SELECT DISTINCT id_partido, N'Activa', NULL
+    FROM #terna_seed;
+
+    INSERT INTO Mundial.Arbitro_Terna (id_terna, id_arbitro, rol)
+    SELECT i.id_terna, s.id_arbitro,
+        CASE s.turno
+            WHEN 1 THEN N'Principal'
+            WHEN 2 THEN N'Asistente 1'
+            WHEN 3 THEN N'Asistente 2'
+            WHEN 4 THEN N'Cuarto arbitro'
+            WHEN 5 THEN N'VAR'
+        END
+    FROM #terna_insertada AS i
+    JOIN #terna_seed AS s ON s.id_partido = i.id_partido;
+
+    PRINT N'Ternas activas cargadas: ' + CONVERT(VARCHAR(10), @@ROWCOUNT / 5);
+
+    DROP TABLE #terna_seed;
+    DROP TABLE #terna_insertada;
 END
 GO

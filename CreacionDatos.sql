@@ -2460,41 +2460,26 @@ GO
 select * from Mundial.Espacio_publicitario
 go
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+GO
+/* Husos horarios de Pais para Matriz Prime Time (E7) */
+UPDATE Mundial.Pais SET huso_horario = CASE nombre
+  WHEN 'Argentina' THEN 'UTC-03:00' WHEN 'Brasil' THEN 'UTC-03:00' WHEN 'Uruguay' THEN 'UTC-03:00'
+  WHEN 'Colombia' THEN 'UTC-05:00' WHEN 'Ecuador' THEN 'UTC-05:00' WHEN 'Paraguay' THEN 'UTC-04:00'
+  WHEN 'Francia' THEN 'UTC+02:00' WHEN 'España' THEN 'UTC+02:00' WHEN 'Alemania' THEN 'UTC+02:00'
+  WHEN 'Inglaterra' THEN 'UTC+01:00' WHEN 'Italia' THEN 'UTC+02:00' WHEN 'Portugal' THEN 'UTC+01:00'
+  WHEN 'Paises Bajos' THEN 'UTC+02:00' WHEN 'Bélgica' THEN 'UTC+02:00' WHEN 'Croacia' THEN 'UTC+02:00'
+  WHEN 'Noruega' THEN 'UTC+02:00' WHEN 'Suiza' THEN 'UTC+02:00' WHEN 'Serbia' THEN 'UTC+02:00'
+  WHEN 'Polonia' THEN 'UTC+02:00' WHEN 'Austria' THEN 'UTC+02:00' WHEN 'México' THEN 'UTC-06:00'
+  WHEN 'USA' THEN 'UTC-05:00' WHEN 'Estados Unidos' THEN 'UTC-05:00' WHEN 'Canadá' THEN 'UTC-05:00'
+  WHEN 'Costa Rica' THEN 'UTC-06:00' WHEN 'Marruecos' THEN 'UTC+01:00' WHEN 'Senegal' THEN 'UTC+00:00'
+  WHEN 'Nigeria' THEN 'UTC+01:00' WHEN 'Egipto' THEN 'UTC+02:00' WHEN 'Costa de Marfil' THEN 'UTC+00:00'
+  WHEN 'Japon' THEN 'UTC+09:00' WHEN 'Japón' THEN 'UTC+09:00' WHEN 'Corea del Sur' THEN 'UTC+09:00'
+  WHEN 'Australia' THEN 'UTC+10:00' ELSE huso_horario
+END
+WHERE nombre IN (
+  'Argentina','Brasil','Uruguay','Colombia','Ecuador','Paraguay','Francia','España','Alemania',
+  'Inglaterra','Italia','Portugal','Paises Bajos','Bélgica','Croacia','Noruega','Suiza','Serbia',
+  'Polonia','Austria','México','USA','Estados Unidos','Canadá','Costa Rica','Marruecos','Senegal',
+  'Nigeria','Egipto','Costa de Marfil','Japon','Japón','Corea del Sur','Australia'
+);
+GO

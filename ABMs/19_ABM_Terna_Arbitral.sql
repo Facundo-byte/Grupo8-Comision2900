@@ -41,8 +41,8 @@ BEGIN
         SET @errores += N'id_partido es obligatorio. ';
     ELSE IF NOT EXISTS (SELECT 1 FROM Mundial.Partido WHERE id_partido = @id_partido)
         SET @errores += N'id_partido no existe en Mundial.Partido. ';
-    ELSE IF EXISTS (SELECT 1 FROM Mundial.Terna_Arbitral WHERE id_partido = @id_partido)
-        SET @errores += N'El partido ya tiene una terna asignada. ';
+    ELSE IF EXISTS (SELECT 1 FROM Mundial.Terna_Arbitral WHERE id_partido = @id_partido AND estado = 'Activa')
+        SET @errores += N'El partido ya tiene una terna activa asignada. ';
 
     -- 2) Armo la terna de roles (roles EXACTOS del CHECK)
     DECLARE @terna TABLE (rol VARCHAR(30) NOT NULL, id_arbitro INT NULL);
@@ -197,10 +197,18 @@ BEGIN
     ELSE IF @motivo_descarte IS NOT NULL
         SET @errores += N'motivo_descarte solo se informa cuando el estado es Descartada. ';
 
-    -- 4) No se puede pasar a Descartada si está asignada a un partido
-    IF @estado = N'Descartada' AND @id_terna IS NOT NULL
-       AND EXISTS (SELECT 1 FROM Mundial.Partido WHERE id_terna_arbitral = @id_terna)
-        SET @errores += N'No se puede descartar la terna: está asignada a uno o más partidos. ';
+    -- 4) Si pasa a Activa, el partido no puede tener otra terna activa
+    IF @estado = N'Activa' AND @id_terna IS NOT NULL
+       AND EXISTS (SELECT 1 FROM Mundial.Terna_Arbitral WHERE id_terna = @id_terna)
+    BEGIN
+        DECLARE @id_partido_mod INT;
+        SELECT @id_partido_mod = id_partido FROM Mundial.Terna_Arbitral WHERE id_terna = @id_terna;
+        IF EXISTS (
+            SELECT 1 FROM Mundial.Terna_Arbitral
+            WHERE id_partido = @id_partido_mod AND estado = N'Activa' AND id_terna <> @id_terna
+        )
+            SET @errores += N'El partido ya tiene otra terna activa. ';
+    END
 
     IF @errores <> N''
         THROW 51002, @errores, 1;
@@ -229,9 +237,6 @@ BEGIN
         SET @errores += N'id_terna es obligatorio. ';
     ELSE IF NOT EXISTS (SELECT 1 FROM Mundial.Terna_Arbitral WHERE id_terna = @id_terna)
         SET @errores += N'id_terna no existe en Mundial.Terna_Arbitral. ';
-    -- 2) No se puede borrar si está asignada a un partido
-    ELSE IF EXISTS (SELECT 1 FROM Mundial.Partido WHERE id_terna_arbitral = @id_terna)
-        SET @errores += N'No se puede dar de baja: la terna está asignada a uno o más partidos. ';
 
     IF @errores <> N''
         THROW 51003, @errores, 1;

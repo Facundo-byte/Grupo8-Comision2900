@@ -33,11 +33,10 @@ BEGIN
             SELECT
                 j.dorsal            AS '@dorsal',
                 j.nombre + ' ' + j.apellido AS 'nombre',
-                ISNULL(pos.nombre, 'Sin posición') AS 'posicion',
+                N'Sin posición'             AS 'posicion',
                 j.club              AS 'club'
             FROM Mundial.Jugador j
             INNER JOIN Mundial.ListaConvocados lc ON lc.id_lista = j.id_lista_convocados
-            LEFT JOIN Mundial.Posicion pos ON pos.id_posicion = j.id_posicion
             WHERE lc.id_seleccion = s.id_seleccion
             ORDER BY j.dorsal
             FOR XML PATH('convocado'), TYPE
