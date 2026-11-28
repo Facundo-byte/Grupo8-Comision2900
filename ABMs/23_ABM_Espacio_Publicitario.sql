@@ -13,8 +13,7 @@ GO
 CREATE OR ALTER PROCEDURE MfSPabm.usp_Espacio_publicitario_Alta
     @id_sede INT,
     @numero_espacio TINYINT,
-    @descripcion VARCHAR(100) = NULL,
-    @id_pais_interes INT = NULL
+    @descripcion VARCHAR(100) = NULL
 AS
 BEGIN
     DECLARE @error VARCHAR(500) = '';
@@ -32,35 +31,26 @@ BEGIN
     IF (SELECT COUNT(*) FROM Mundial.Espacio_publicitario WHERE id_sede = @id_sede) >= 4
         SET @error = @error + 'La sede ya tiene los 4 espacios. ';
 
-    IF @id_pais_interes IS NOT NULL
-       AND NOT EXISTS (SELECT 1 FROM Mundial.Pais WHERE id_pais = @id_pais_interes)
-        SET @error = @error + 'Pais de interes inexistente. ';
-
     IF @error <> ''
     BEGIN
         PRINT @error;
         RETURN;
     END
 
-    INSERT INTO Mundial.Espacio_publicitario (id_sede, numero_espacio, descripcion, id_pais_interes)
-    VALUES (@id_sede, @numero_espacio, @descripcion, @id_pais_interes);
+    INSERT INTO Mundial.Espacio_publicitario (id_sede, numero_espacio, descripcion)
+    VALUES (@id_sede, @numero_espacio, @descripcion);
 END
 GO
 
 CREATE OR ALTER PROCEDURE MfSPabm.usp_Espacio_publicitario_Modificacion
     @id_espacio INT,
-    @descripcion VARCHAR(100) = NULL,
-    @id_pais_interes INT = NULL
+    @descripcion VARCHAR(100) = NULL
 AS
 BEGIN
     DECLARE @error VARCHAR(500) = '';
 
     IF @id_espacio IS NULL OR NOT EXISTS (SELECT 1 FROM Mundial.Espacio_publicitario WHERE id_espacio = @id_espacio)
         SET @error = @error + 'Espacio inexistente. ';
-
-    IF @id_pais_interes IS NOT NULL
-       AND NOT EXISTS (SELECT 1 FROM Mundial.Pais WHERE id_pais = @id_pais_interes)
-        SET @error = @error + 'Pais de interes inexistente. ';
 
     IF @error <> ''
     BEGIN
@@ -69,8 +59,7 @@ BEGIN
     END
 
     UPDATE Mundial.Espacio_publicitario
-    SET descripcion = @descripcion,
-        id_pais_interes = @id_pais_interes
+    SET descripcion = @descripcion
     WHERE id_espacio = @id_espacio;
 END
 GO
@@ -85,7 +74,8 @@ BEGIN
         RETURN;
     END
 
-    DELETE FROM Mundial.Espacio_publicitario
-    WHERE id_espacio = @id_espacio;
+    -- Los cuatro paneles se dan de baja juntos al eliminar la sede.
+    PRINT 'No se puede dar de baja un espacio individual: cada sede debe conservar sus cuatro espacios.';
+    RETURN;
 END
 GO

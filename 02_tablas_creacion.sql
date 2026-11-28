@@ -14,11 +14,18 @@ IF SCHEMA_ID('Mundial') IS NULL EXEC('CREATE SCHEMA Mundial');
 GO
 
 -- borrado previo en orden inverso de dependencias
+DROP TABLE IF EXISTS Mundial.Anuncios_en_Partido;
+DROP TABLE IF EXISTS Mundial.Pieza_Mercado;
+DROP TABLE IF EXISTS Mundial.Pieza_publicitaria;
+DROP TABLE IF EXISTS Mundial.Campania;
+DROP TABLE IF EXISTS Mundial.Anunciante;
+DROP TABLE IF EXISTS Mundial.Franja_publicitaria;
+DROP TABLE IF EXISTS Mundial.Tecnico;
+DROP TABLE IF EXISTS Mundial.Arbitro_Terna;
 DROP TABLE IF EXISTS Mundial.Jugador_Formacion;
 DROP TABLE IF EXISTS Mundial.Formacion;
 DROP TABLE IF EXISTS Mundial.Espacio_publicitario;
 DROP TABLE IF EXISTS Mundial.Cuerpo_tecnico;
-DROP TABLE IF EXISTS Mundial.Posicion;
 DROP TABLE IF EXISTS Mundial.Esquema;
 DROP TABLE IF EXISTS Mundial.Expulsion;
 DROP TABLE IF EXISTS Mundial.Tarjeta;
@@ -26,12 +33,13 @@ DROP TABLE IF EXISTS Mundial.Gol;
 DROP TABLE IF EXISTS Mundial.Sustitucion;
 DROP TABLE IF EXISTS Mundial.Terna_Arbitral;
 DROP TABLE IF EXISTS Mundial.Partido;
-DROP TABLE IF EXISTS Mundial.Idioma;
 DROP TABLE IF EXISTS Mundial.Arbitro;
+DROP TABLE IF EXISTS Mundial.Idioma;
 DROP TABLE IF EXISTS Mundial.Sede;
 DROP TABLE IF EXISTS Mundial.Confederacion;
 DROP TABLE IF EXISTS Mundial.AltasBajasConvocados;
 DROP TABLE IF EXISTS Mundial.Jugador;
+DROP TABLE IF EXISTS Mundial.Posicion;
 DROP TABLE IF EXISTS Mundial.ListaConvocados;
 DROP TABLE IF EXISTS Mundial.Seleccion;
 DROP TABLE IF EXISTS Mundial.Pais;
@@ -43,6 +51,11 @@ CREATE TABLE Mundial.Pais
     id_pais INT IDENTITY(1,1) NOT NULL,
     nombre  VARCHAR(60)       NOT NULL,
     huso_horario VARCHAR(20),
+    pbi_per_capita DECIMAL(18,2) NULL,
+    hora_inicio_prime TIME(0) NOT NULL CONSTRAINT DF_Pais_inicio_prime DEFAULT ('19:00'),
+    hora_fin_prime TIME(0) NOT NULL CONSTRAINT DF_Pais_fin_prime DEFAULT ('23:00'),
+    CONSTRAINT CK_Pais_pbi CHECK (pbi_per_capita >= 0),
+    CONSTRAINT CK_Pais_prime CHECK (hora_inicio_prime <> hora_fin_prime),
     CONSTRAINT PK_Pais PRIMARY KEY (id_pais),
     CONSTRAINT UQ_Pais_nombre UNIQUE (nombre)
 );
@@ -83,6 +96,16 @@ CREATE TABLE Mundial.Jugador
     club                 VARCHAR(50) NULL,
     CONSTRAINT PK_Jugador PRIMARY KEY (id_jugador),
     CONSTRAINT FK_Jugador_ListaConvocados FOREIGN KEY (id_lista_convocados) REFERENCES Mundial.ListaConvocados (id_lista)
+);
+GO
+
+CREATE TABLE Mundial.Posicion (
+    id_posicion INT IDENTITY(1,1) NOT NULL,
+    nombre      VARCHAR(30)       NOT NULL,
+    abreviatura VARCHAR(5)        NOT NULL,
+    CONSTRAINT PK_Posicion     PRIMARY KEY (id_posicion),
+    CONSTRAINT UQ_Posicion_nom UNIQUE (nombre),
+    CONSTRAINT UQ_Posicion_abr UNIQUE (abreviatura)
 );
 GO
 
@@ -459,15 +482,6 @@ CREATE TABLE Mundial.Esquema (
 );
 GO
 
-CREATE TABLE Mundial.Posicion (
-    id_posicion INT IDENTITY(1,1) NOT NULL,
-    nombre      VARCHAR(30)       NOT NULL,
-    abreviatura VARCHAR(5)        NOT NULL,
-    CONSTRAINT PK_Posicion     PRIMARY KEY (id_posicion),
-    CONSTRAINT UQ_Posicion_nom UNIQUE (nombre),
-    CONSTRAINT UQ_Posicion_abr UNIQUE (abreviatura)
-);
-GO
 
 CREATE TABLE Mundial.Formacion (
     id_formacion INT IDENTITY(1,1) NOT NULL,
@@ -518,12 +532,11 @@ CREATE TABLE Mundial.Espacio_publicitario (
     id_sede         INT          NOT NULL,
     numero_espacio  TINYINT      NOT NULL,
     descripcion     VARCHAR(100) NULL,
-    id_pais_interes INT          NULL,
     CONSTRAINT PK_Espacio_publicitario PRIMARY KEY (id_espacio),
     CONSTRAINT UQ_Espacio_sede_numero  UNIQUE (id_sede, numero_espacio),
     CONSTRAINT CK_Espacio_numero       CHECK (numero_espacio BETWEEN 1 AND 4),
-    CONSTRAINT FK_Espacio_Sede         FOREIGN KEY (id_sede)         REFERENCES Mundial.Sede(id_sede),
-    CONSTRAINT FK_Espacio_Pais         FOREIGN KEY (id_pais_interes) REFERENCES Mundial.Pais(id_pais)
+    CONSTRAINT UQ_Espacio_sede_id UNIQUE (id_sede, id_espacio),
+    CONSTRAINT FK_Espacio_Sede FOREIGN KEY (id_sede) REFERENCES Mundial.Sede(id_sede) ON DELETE CASCADE
 );
 GO
 
@@ -535,3 +548,86 @@ FOREIGN KEY (id_partido)
 REFERENCES Mundial.Partido (id_partido);
 GO
 
+-- Publicidad: los cuatro paneles se crean junto con la sede.
+CREATE OR ALTER TRIGGER Mundial.TR_Sede_CrearEspacios
+ON Mundial.Sede
+AFTER INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO Mundial.Espacio_publicitario (id_sede, numero_espacio)
+    SELECT s.id_sede, n.numero
+    FROM inserted s
+    CROSS JOIN (VALUES (1), (2), (3), (4)) n(numero);
+END;
+GO
+
+CREATE TABLE Mundial.Anunciante (
+    id_anunciante INT IDENTITY(1,1) PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    id_pais_origen INT NOT NULL,
+    CONSTRAINT FK_Anunciante_Pais FOREIGN KEY (id_pais_origen) REFERENCES Mundial.Pais(id_pais)
+);
+GO
+
+CREATE TABLE Mundial.Campania (
+    id_campania INT IDENTITY(1,1) PRIMARY KEY,
+    id_anunciante INT NOT NULL,
+    nombre VARCHAR(150) NOT NULL,
+    fecha_desde DATETIME2(0) NOT NULL,
+    fecha_hasta DATETIME2(0) NOT NULL,
+    CONSTRAINT CK_Campania_fechas CHECK (fecha_desde <= fecha_hasta),
+    CONSTRAINT FK_Campania_Anunciante FOREIGN KEY (id_anunciante) REFERENCES Mundial.Anunciante(id_anunciante)
+);
+GO
+
+CREATE TABLE Mundial.Pieza_publicitaria (
+    id_pieza INT IDENTITY(1,1) PRIMARY KEY,
+    id_campania INT NOT NULL,
+    titulo VARCHAR(150) NOT NULL,
+    id_idioma INT NOT NULL,
+    CONSTRAINT FK_Pieza_Campania FOREIGN KEY (id_campania) REFERENCES Mundial.Campania(id_campania),
+    CONSTRAINT FK_Pieza_Idioma FOREIGN KEY (id_idioma) REFERENCES Mundial.Idioma(id_idioma)
+);
+GO
+
+CREATE TABLE Mundial.Pieza_Mercado (
+    id_pieza INT NOT NULL,
+    id_pais INT NOT NULL,
+    CONSTRAINT PK_Pieza_Mercado PRIMARY KEY (id_pieza, id_pais),
+    CONSTRAINT FK_PiezaMercado_Pieza FOREIGN KEY (id_pieza) REFERENCES Mundial.Pieza_publicitaria(id_pieza),
+    CONSTRAINT FK_PiezaMercado_Pais FOREIGN KEY (id_pais) REFERENCES Mundial.Pais(id_pais)
+);
+GO
+
+CREATE TABLE Mundial.Franja_publicitaria (
+    id_franja INT IDENTITY(1,1) PRIMARY KEY,
+    nombre VARCHAR(80) NOT NULL,
+    tarifa_por_espacio DECIMAL(18,2) NOT NULL,
+    moneda VARCHAR(3) NOT NULL,
+    CONSTRAINT CK_Franja_tarifa CHECK (tarifa_por_espacio >= 0),
+    CONSTRAINT CK_Franja_moneda CHECK (moneda COLLATE Latin1_General_100_BIN2 LIKE '[A-Z][A-Z][A-Z]')
+);
+GO
+
+-- La sede compartida por las dos FK impide exhibir en un panel de otro estadio.
+ALTER TABLE Mundial.Partido ADD CONSTRAINT UQ_Partido_sede_id UNIQUE (id_sede, id_partido);
+GO
+
+CREATE TABLE Mundial.Anuncios_en_Partido (
+    id_partido INT NOT NULL,
+    id_espacio INT NOT NULL,
+    id_franja INT NOT NULL,
+    id_pieza_publicitaria INT NOT NULL,
+    id_sede INT NOT NULL,
+    importe_aplicado DECIMAL(18,2) NOT NULL,
+    moneda_aplicada VARCHAR(3) NOT NULL,
+    CONSTRAINT PK_Anuncios_en_Partido PRIMARY KEY (id_partido, id_espacio, id_franja),
+    CONSTRAINT FK_Anuncios_Partido FOREIGN KEY (id_sede, id_partido) REFERENCES Mundial.Partido(id_sede, id_partido),
+    CONSTRAINT FK_Anuncios_Espacio FOREIGN KEY (id_sede, id_espacio) REFERENCES Mundial.Espacio_publicitario(id_sede, id_espacio),
+    CONSTRAINT FK_Anuncios_Franja FOREIGN KEY (id_franja) REFERENCES Mundial.Franja_publicitaria(id_franja),
+    CONSTRAINT FK_Anuncios_Pieza FOREIGN KEY (id_pieza_publicitaria) REFERENCES Mundial.Pieza_publicitaria(id_pieza),
+    CONSTRAINT CK_Anuncios_importe CHECK (importe_aplicado >= 0),
+    CONSTRAINT CK_Anuncios_moneda CHECK (moneda_aplicada COLLATE Latin1_General_100_BIN2 LIKE '[A-Z][A-Z][A-Z]')
+);
+GO

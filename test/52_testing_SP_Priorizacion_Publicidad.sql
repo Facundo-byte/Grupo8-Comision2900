@@ -47,15 +47,8 @@ BEGIN
     -- Caso 1: Simular prime time por mercado para el partido
     EXEC Mundial.usp_Simular_PrimeTime_Partido @id_partido = @idPart, @candidatos = @candidatos;
 
-    -- Caso 2: Asignar los 4 espacios priorizados y persistir en Espacio_publicitario de la sede
-    EXEC Mundial.usp_Asignar_Publicidad_Partido @id_partido = @idPart, @candidatos = @candidatos, @persistir_en_sede = 1;
-
-    -- Verificar persistencia en Mundial.Espacio_publicitario
-    SELECT prueba = 'PU2 Espacios persistidos en sede', ep.*
-    FROM Mundial.Espacio_publicitario ep
-    JOIN Mundial.Partido p ON p.id_sede = ep.id_sede
-    WHERE p.id_partido = @idPart
-    ORDER BY ep.numero_espacio;
+    -- Caso 2: proponer cuatro piezas distintas sin registrar una exhibicion.
+    EXEC Mundial.usp_Asignar_Publicidad_Partido @id_partido = @idPart, @candidatos = @candidatos;
 
     -- Caso 3: Menos de 4 candidatos (debe fallar)
     BEGIN TRY

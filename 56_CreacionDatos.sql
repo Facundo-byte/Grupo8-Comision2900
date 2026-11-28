@@ -2307,84 +2307,83 @@ DECLARE @Espacios TABLE (
     fila             INT IDENTITY(1,1) PRIMARY KEY,
     nombre_estadio   NVARCHAR(200),
     numero_espacio   TINYINT,
-    descripcion      VARCHAR(100),
-    nombrePaisInteres VARCHAR(30)   -- NULL si no hay país de interés
+    descripcion      VARCHAR(100)
 );
 
 -- Para cada sede, 4 espacios con descripciones variadas
 -- Uso los 12 estadios del script de sedes
-INSERT INTO @Espacios (nombre_estadio, numero_espacio, descripcion, nombrePaisInteres) VALUES
+INSERT INTO @Espacios (nombre_estadio, numero_espacio, descripcion) VALUES
 -- Estadio Monumental (Buenos Aires)
-(N'Estadio Monumental Antonio V. Liberti', 1, 'Cartel LED principal - Frente a cámara',      'Argentina'),
-(N'Estadio Monumental Antonio V. Liberti', 2, 'Valla perimetral sector popular',             'Brasil'),
-(N'Estadio Monumental Antonio V. Liberti', 3, 'Pantalla gigante marcador',                   'España'),
-(N'Estadio Monumental Antonio V. Liberti', 4, 'Backing campo de juego',                       NULL),
+(N'Estadio Monumental Antonio V. Liberti', 1, 'Cartel LED principal - Frente a cámara'),
+(N'Estadio Monumental Antonio V. Liberti', 2, 'Valla perimetral sector popular'),
+(N'Estadio Monumental Antonio V. Liberti', 3, 'Pantalla gigante marcador'),
+(N'Estadio Monumental Antonio V. Liberti', 4, 'Backing campo de juego'),
 
 -- La Bombonera (Buenos Aires)
-(N'Estadio Alberto J. Armando (La Bombonera)', 1, 'Cartel LED tribuna lateral',              'Francia'),
-(N'Estadio Alberto J. Armando (La Bombonera)', 2, 'Valla perimetral popular',                'Argentina'),
-(N'Estadio Alberto J. Armando (La Bombonera)', 3, 'Pantalla sector visitante',               'Alemania'),
-(N'Estadio Alberto J. Armando (La Bombonera)', 4, 'Backing campo de juego',                  NULL),
+(N'Estadio Alberto J. Armando (La Bombonera)', 1, 'Cartel LED tribuna lateral'),
+(N'Estadio Alberto J. Armando (La Bombonera)', 2, 'Valla perimetral popular'),
+(N'Estadio Alberto J. Armando (La Bombonera)', 3, 'Pantalla sector visitante'),
+(N'Estadio Alberto J. Armando (La Bombonera)', 4, 'Backing campo de juego'),
 
 -- Ciudad de La Plata
-(N'Estadio Ciudad de La Plata', 1, 'Cartel LED principal',                                   'Inglaterra'),
-(N'Estadio Ciudad de La Plata', 2, 'Valla perimetral sector A',                              'Italia'),
-(N'Estadio Ciudad de La Plata', 3, 'Pantalla gigante',                                       'Portugal'),
-(N'Estadio Ciudad de La Plata', 4, 'Backing campo',                                          NULL),
+(N'Estadio Ciudad de La Plata', 1, 'Cartel LED principal'),
+(N'Estadio Ciudad de La Plata', 2, 'Valla perimetral sector A'),
+(N'Estadio Ciudad de La Plata', 3, 'Pantalla gigante'),
+(N'Estadio Ciudad de La Plata', 4, 'Backing campo'),
 
 -- Mario Alberto Kempes (Córdoba)
-(N'Estadio Mario Alberto Kempes', 1, 'Cartel LED principal',                                 'Brasil'),
-(N'Estadio Mario Alberto Kempes', 2, 'Valla perimetral',                                     'Uruguay'),
-(N'Estadio Mario Alberto Kempes', 3, 'Pantalla marcador',                                    'Colombia'),
-(N'Estadio Mario Alberto Kempes', 4, 'Backing campo',                                        NULL),
+(N'Estadio Mario Alberto Kempes', 1, 'Cartel LED principal'),
+(N'Estadio Mario Alberto Kempes', 2, 'Valla perimetral'),
+(N'Estadio Mario Alberto Kempes', 3, 'Pantalla marcador'),
+(N'Estadio Mario Alberto Kempes', 4, 'Backing campo'),
 
 -- Malvinas Argentinas (Mendoza)
-(N'Estadio Malvinas Argentinas', 1, 'Cartel LED principal',                                  'Argentina'),
-(N'Estadio Malvinas Argentinas', 2, 'Valla perimetral',                                      'Chile'),
-(N'Estadio Malvinas Argentinas', 3, 'Pantalla sector visitante',                             'México'),
-(N'Estadio Malvinas Argentinas', 4, 'Backing campo',                                         NULL),
+(N'Estadio Malvinas Argentinas', 1, 'Cartel LED principal'),
+(N'Estadio Malvinas Argentinas', 2, 'Valla perimetral'),
+(N'Estadio Malvinas Argentinas', 3, 'Pantalla sector visitante'),
+(N'Estadio Malvinas Argentinas', 4, 'Backing campo'),
 
 -- Gigante de Arroyito (Rosario)
-(N'Estadio Gigante de Arroyito', 1, 'Cartel LED principal',                                  'Países Bajos'),
-(N'Estadio Gigante de Arroyito', 2, 'Valla perimetral',                                      'Bélgica'),
-(N'Estadio Gigante de Arroyito', 3, 'Pantalla marcador',                                     'Croacia'),
-(N'Estadio Gigante de Arroyito', 4, 'Backing campo',                                         NULL),
+(N'Estadio Gigante de Arroyito', 1, 'Cartel LED principal'),
+(N'Estadio Gigante de Arroyito', 2, 'Valla perimetral'),
+(N'Estadio Gigante de Arroyito', 3, 'Pantalla marcador'),
+(N'Estadio Gigante de Arroyito', 4, 'Backing campo'),
 
 -- Padre Ernesto Martearena (Salta)
-(N'Estadio Padre Ernesto Martearena', 1, 'Cartel LED principal',                             'Dinamarca'),
-(N'Estadio Padre Ernesto Martearena', 2, 'Valla perimetral',                                 'Suiza'),
-(N'Estadio Padre Ernesto Martearena', 3, 'Pantalla marcador',                                'Serbia'),
-(N'Estadio Padre Ernesto Martearena', 4, 'Backing campo',                                    NULL),
+(N'Estadio Padre Ernesto Martearena', 1, 'Cartel LED principal'),
+(N'Estadio Padre Ernesto Martearena', 2, 'Valla perimetral'),
+(N'Estadio Padre Ernesto Martearena', 3, 'Pantalla marcador'),
+(N'Estadio Padre Ernesto Martearena', 4, 'Backing campo'),
 
 -- Bicentenario de San Juan
-(N'Estadio Bicentenario de San Juan', 1, 'Cartel LED principal',                             'Polonia'),
-(N'Estadio Bicentenario de San Juan', 2, 'Valla perimetral',                                 'Austria'),
-(N'Estadio Bicentenario de San Juan', 3, 'Pantalla marcador',                                'Marruecos'),
-(N'Estadio Bicentenario de San Juan', 4, 'Backing campo',                                    NULL),
+(N'Estadio Bicentenario de San Juan', 1, 'Cartel LED principal'),
+(N'Estadio Bicentenario de San Juan', 2, 'Valla perimetral'),
+(N'Estadio Bicentenario de San Juan', 3, 'Pantalla marcador'),
+(N'Estadio Bicentenario de San Juan', 4, 'Backing campo'),
 
 -- Único de La Plata
-(N'Estadio Único de La Plata', 1, 'Cartel LED principal',                                    'Senegal'),
-(N'Estadio Único de La Plata', 2, 'Valla perimetral',                                        'Nigeria'),
-(N'Estadio Único de La Plata', 3, 'Pantalla marcador',                                       'Egipto'),
-(N'Estadio Único de La Plata', 4, 'Backing campo',                                           NULL),
+(N'Estadio Único de La Plata', 1, 'Cartel LED principal'),
+(N'Estadio Único de La Plata', 2, 'Valla perimetral'),
+(N'Estadio Único de La Plata', 3, 'Pantalla marcador'),
+(N'Estadio Único de La Plata', 4, 'Backing campo'),
 
 -- José Amalfitani (Buenos Aires)
-(N'Estadio José Amalfitani', 1, 'Cartel LED principal',                                      'Camerún'),
-(N'Estadio José Amalfitani', 2, 'Valla perimetral',                                          'Japón'),
-(N'Estadio José Amalfitani', 3, 'Pantalla marcador',                                         'Corea del Sur'),
-(N'Estadio José Amalfitani', 4, 'Backing campo',                                             NULL),
+(N'Estadio José Amalfitani', 1, 'Cartel LED principal'),
+(N'Estadio José Amalfitani', 2, 'Valla perimetral'),
+(N'Estadio José Amalfitani', 3, 'Pantalla marcador'),
+(N'Estadio José Amalfitani', 4, 'Backing campo'),
 
 -- Tomás Adolfo Ducó (Buenos Aires)
-(N'Estadio Tomás Adolfo Ducó', 1, 'Cartel LED principal',                                    'Australia'),
-(N'Estadio Tomás Adolfo Ducó', 2, 'Valla perimetral',                                        'Nueva Zelanda'),
-(N'Estadio Tomás Adolfo Ducó', 3, 'Pantalla marcador',                                       'Estados Unidos'),
-(N'Estadio Tomás Adolfo Ducó', 4, 'Backing campo',                                           NULL),
+(N'Estadio Tomás Adolfo Ducó', 1, 'Cartel LED principal'),
+(N'Estadio Tomás Adolfo Ducó', 2, 'Valla perimetral'),
+(N'Estadio Tomás Adolfo Ducó', 3, 'Pantalla marcador'),
+(N'Estadio Tomás Adolfo Ducó', 4, 'Backing campo'),
 
 -- Libertadores de América (Avellaneda)
-(N'Estadio Libertadores de América', 1, 'Cartel LED principal',                              'Canadá'),
-(N'Estadio Libertadores de América', 2, 'Valla perimetral',                                  'Costa Rica'),
-(N'Estadio Libertadores de América', 3, 'Pantalla marcador',                                 'Panamá'),
-(N'Estadio Libertadores de América', 4, 'Backing campo',                                     NULL);
+(N'Estadio Libertadores de América', 1, 'Cartel LED principal'),
+(N'Estadio Libertadores de América', 2, 'Valla perimetral'),
+(N'Estadio Libertadores de América', 3, 'Pantalla marcador'),
+(N'Estadio Libertadores de América', 4, 'Backing campo');
 
 -- 2) Recorro con WHILE
 DECLARE @fila              INT = 0;
@@ -2392,9 +2391,8 @@ DECLARE @totalFilas        INT;
 DECLARE @nombreEstadio     NVARCHAR(200);
 DECLARE @numeroEspacio     TINYINT;
 DECLARE @descripcion       VARCHAR(100);
-DECLARE @nombrePais        VARCHAR(30);
-DECLARE @idSede            INT;
-DECLARE @idPaisInteres     INT;
+DECLARE @idEspacio         INT;
+
 
 SELECT @totalFilas = MAX(fila) FROM @Espacios;
 
@@ -2405,55 +2403,32 @@ BEGIN
     SELECT
         @nombreEstadio  = nombre_estadio,
         @numeroEspacio  = numero_espacio,
-        @descripcion    = descripcion,
-        @nombrePais     = nombrePaisInteres
+        @descripcion    = descripcion
     FROM @Espacios WHERE fila = @fila;
 
-    -- Resuelvo id_sede por nombre de estadio
-    SELECT @idSede = id_sede
-    FROM Mundial.Sede
-    WHERE nombre_estadio = @nombreEstadio;
+    SET @idEspacio = (
+        SELECT ep.id_espacio FROM Mundial.Espacio_publicitario ep
+        JOIN Mundial.Sede s ON s.id_sede = ep.id_sede
+        WHERE s.nombre_estadio = @nombreEstadio AND ep.numero_espacio = @numeroEspacio
+    );
 
-    IF @idSede IS NULL
+    IF @idEspacio IS NULL
     BEGIN
-        PRINT '  SKIP fila ' + CONVERT(VARCHAR(3), @fila) +
-              ': no existe la sede ' + @nombreEstadio;
+        PRINT '  SKIP: no se encontro el panel en la sede.';
         CONTINUE;
     END
 
-    -- Resuelvo id_pais_interes (si no es NULL)
-    IF @nombrePais IS NOT NULL
-    BEGIN
-        SELECT @idPaisInteres = id_pais FROM Mundial.Pais WHERE nombre = @nombrePais;
-        IF @idPaisInteres IS NULL
-        BEGIN
-            PRINT '  AVISO fila ' + CONVERT(VARCHAR(3), @fila) +
-                  ': país ' + @nombrePais + ' no existe, se inserta sin país de interés';
-            -- dejo @idPaisInteres en NULL
-            SET @idPaisInteres = NULL;
-        END
-    END
-    ELSE
-        SET @idPaisInteres = NULL;
-
-    PRINT '--- ' + @nombreEstadio + ' | espacio ' + CONVERT(VARCHAR(1), @numeroEspacio) +
-          ' | ' + ISNULL(@descripcion, '(sin desc)') + ' ---';
-
     BEGIN TRY
-        EXEC MfSPabm.usp_Espacio_publicitario_Alta
-             @id_sede          = @idSede,
-             @numero_espacio   = @numeroEspacio,
-             @descripcion      = @descripcion,
-             @id_pais_interes  = @idPaisInteres;
+        EXEC MfSPabm.usp_Espacio_publicitario_Modificacion
+             @id_espacio = @idEspacio,
+             @descripcion = @descripcion;
 
-        PRINT '  OK: insertado.';
+        PRINT '  OK: panel actualizado.';
     END TRY
     BEGIN CATCH
         PRINT '  ERROR: ' + ERROR_MESSAGE();
     END CATCH
 
-    -- Reset
-    SET @idPaisInteres = NULL;
 END
 GO
 

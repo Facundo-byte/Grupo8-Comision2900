@@ -280,7 +280,7 @@ BEGIN
                        WHERE id_sede = @id_sede AND numero_espacio = @numero)
         BEGIN
             SET @descripcion = 'Panel perimetral rotativo ' + CAST(@numero AS VARCHAR(1));
-            EXEC Mundial.usp_Espacio_publicitario_Alta @id_sede, @numero, @descripcion, NULL;
+            EXEC MfSPabm.usp_Espacio_publicitario_Alta @id_sede, @numero, @descripcion;
         END
         SET @numero = @numero + 1;
     END

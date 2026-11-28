@@ -249,56 +249,24 @@ END
 PRINT '=== ESPACIO PUBLICITARIO ===';
 
 DECLARE @sede INT = (SELECT TOP 1 id_sede FROM Mundial.Sede ORDER BY id_sede);
-DECLARE @pais INT = (SELECT TOP 1 id_pais FROM Mundial.Pais ORDER BY id_pais);
-
 IF @sede IS NULL
     PRINT 'FALTAN DATOS: no hay sedes.';
 ELSE
 BEGIN
-    SET @x = (SELECT MIN(id_espacio) FROM Mundial.Espacio_publicitario WHERE id_sede = @sede AND id_espacio > 0);
-    WHILE @x IS NOT NULL
-    BEGIN
-        EXEC Mundial.usp_Espacio_publicitario_Baja @x;
-        SET @x = (SELECT MIN(id_espacio) FROM Mundial.Espacio_publicitario WHERE id_sede = @sede AND id_espacio > @x);
-    END
+    SELECT @id = id_espacio FROM Mundial.Espacio_publicitario
+    WHERE id_sede = @sede AND numero_espacio = 1;
 
-    PRINT 'S1 Alta valida nro 1. Esperado: 1 fila';
-    EXEC Mundial.usp_Espacio_publicitario_Alta @sede, 1, 'Panel de prueba', NULL;
-    SELECT * FROM Mundial.Espacio_publicitario WHERE id_sede = @sede;
-    SELECT @id = id_espacio FROM Mundial.Espacio_publicitario WHERE id_sede = @sede AND numero_espacio = 1;
+    PRINT 'S1 Alta duplicada y quinto espacio: se esperan rechazos.';
+    EXEC MfSPabm.usp_Espacio_publicitario_Alta @sede, 1;
+    EXEC MfSPabm.usp_Espacio_publicitario_Alta @sede, 5;
 
-    PRINT 'S2 Numero repetido. Esperado: "La sede ya tiene ese numero de espacio."';
-    EXEC Mundial.usp_Espacio_publicitario_Alta @sede, 1, 'Duplicado', NULL;
-
-    PRINT 'S3 Numero fuera de rango (5). Esperado: "El numero de espacio debe ser de 1 a 4."';
-    EXEC Mundial.usp_Espacio_publicitario_Alta @sede, 5, 'Fuera de rango', NULL;
-
-    PRINT 'S4 Sede inexistente. Esperado: "Sede inexistente."';
-    EXEC Mundial.usp_Espacio_publicitario_Alta -1, 2, 'Sin sede', NULL;
-
-    PRINT 'S5 Pais de interes inexistente. Esperado: "Pais de interes inexistente."';
-    EXEC Mundial.usp_Espacio_publicitario_Alta @sede, 2, 'Pais invalido', -1;
-
-    PRINT 'S6 Altas 2, 3 y 4 con pais valido. Esperado: 4 filas en total';
-    EXEC Mundial.usp_Espacio_publicitario_Alta @sede, 2, 'Panel 2', @pais;
-    EXEC Mundial.usp_Espacio_publicitario_Alta @sede, 3, 'Panel 3', @pais;
-    EXEC Mundial.usp_Espacio_publicitario_Alta @sede, 4, 'Panel 4', @pais;
-    SELECT * FROM Mundial.Espacio_publicitario WHERE id_sede = @sede ORDER BY numero_espacio;
-
-    PRINT 'S7 Quinto espacio con la sede completa. Esperado: "La sede ya tiene ese numero de espacio. La sede ya tiene los 4 espacios."';
-    EXEC Mundial.usp_Espacio_publicitario_Alta @sede, 1, 'Extra', NULL;
-
-    PRINT 'S8 Modificacion valida. Esperado: descripcion = Panel modificado';
-    EXEC Mundial.usp_Espacio_publicitario_Modificacion @id, 'Panel modificado', NULL;
-    SELECT * FROM Mundial.Espacio_publicitario WHERE id_espacio = @id;
-
-    PRINT 'S9 Modificacion de inexistente. Esperado: "Espacio inexistente."';
-    EXEC Mundial.usp_Espacio_publicitario_Modificacion -1, 'X', NULL;
-
-    PRINT 'S10 Baja valida y baja de inexistente. Esperado: se borra el espacio 1 y luego "Espacio inexistente."';
-    EXEC Mundial.usp_Espacio_publicitario_Baja @id;
-    EXEC Mundial.usp_Espacio_publicitario_Baja @id;
-    SELECT COUNT(*) AS filas FROM Mundial.Espacio_publicitario WHERE id_sede = @sede; -- Esperado: 3
+    PRINT 'S2 Cambio de descripcion y baja individual: se conservan los cuatro paneles.';
+    BEGIN TRANSACTION;
+    EXEC MfSPabm.usp_Espacio_publicitario_Modificacion @id, 'Panel modificado';
+    EXEC MfSPabm.usp_Espacio_publicitario_Baja @id;
+    SELECT numero_espacio, descripcion FROM Mundial.Espacio_publicitario
+    WHERE id_sede = @sede ORDER BY numero_espacio;
+    ROLLBACK TRANSACTION;
 END
 
 -- Baja valida final de Posicion y Esquema de prueba

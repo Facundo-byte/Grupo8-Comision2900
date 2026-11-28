@@ -79,7 +79,7 @@ GO
 CREATE OR ALTER PROCEDURE Mundial.usp_Asignar_Publicidad_Partido
     @id_partido INT,
     @candidatos Mundial.tt_CandidatoPublicidad READONLY,
-    @persistir_en_sede BIT = 1
+    @persistir_en_sede BIT = 0
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -91,8 +91,8 @@ BEGIN
     IF @id_partido IS NULL OR NOT EXISTS (SELECT 1 FROM Mundial.Partido WHERE id_partido = @id_partido)
         SET @errores += N'El partido indicado no existe. ';
 
-    IF (SELECT COUNT(*) FROM @candidatos) < 4
-        SET @errores += N'Se requieren al menos 4 piezas candidatas para cubrir los 4 espacios publicitarios de la sede. ';
+    IF @persistir_en_sede = 1
+        SET @errores += N'La propuesta es de consulta. Registre la exhibicion confirmada mediante el ABM de Anuncios_en_Partido. ';
 
     IF EXISTS (
         SELECT 1
@@ -125,7 +125,7 @@ BEGIN
         numero_espacio   TINYINT PRIMARY KEY,
         id_pieza         INT,
         anunciante       NVARCHAR(100),
-        campania         NVARCHAR(100),
+        campania         NVARCHAR(150),
         id_pais_destino  INT,
         pais_destino     VARCHAR(60),
         es_pais_partido  BIT,
@@ -135,28 +135,45 @@ BEGIN
         criterio_aplicado NVARCHAR(150)
     );
 
-    ;WITH Evaluacion AS (
-        SELECT
-            c.id_pieza,
-            c.anunciante,
-            c.campania,
-            c.id_pais_destino,
-            pa.nombre AS pais_destino,
-            CASE WHEN c.id_pais_destino IN (@id_pais_local, @id_pais_visitante) THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS es_pais_partido,
-            c.pbi_per_capita,
-            CASE
-                WHEN DATEPART(HOUR, DATEADD(
-                    MINUTE,
-                    (CASE WHEN SUBSTRING(c.huso_horario, 4, 1) = '-' THEN -1 ELSE 1 END) *
-                    (CAST(SUBSTRING(c.huso_horario, 5, 2) AS INT) * 60 + CAST(SUBSTRING(c.huso_horario, 8, 2) AS INT)),
-                    @fecha_utc
-                )) BETWEEN 19 AND 22
-                THEN CAST(1 AS BIT)
-                ELSE CAST(0 AS BIT)
-            END AS es_prime_time,
-            c.tarifa_usd
+    -- Sin candidatos externos, se usan las piezas vigentes y sus mercados registrados.
+    ;WITH Mercados AS (
+        SELECT c.id_pieza, c.anunciante, c.campania, c.id_pais_destino, c.huso_horario,
+               c.pbi_per_capita, c.tarifa_usd
         FROM @candidatos c
+        UNION ALL
+        SELECT pi.id_pieza, a.nombre, ca.nombre, pm.id_pais, pa.huso_horario,
+               pa.pbi_per_capita, NULL
+        FROM Mundial.Pieza_publicitaria pi
+        JOIN Mundial.Campania ca ON ca.id_campania = pi.id_campania
+        JOIN Mundial.Anunciante a ON a.id_anunciante = ca.id_anunciante
+        JOIN Mundial.Pieza_Mercado pm ON pm.id_pieza = pi.id_pieza
+        JOIN Mundial.Pais pa ON pa.id_pais = pm.id_pais
+        WHERE NOT EXISTS (SELECT 1 FROM @candidatos)
+          AND @fecha_utc BETWEEN ca.fecha_desde AND ca.fecha_hasta
+    ),
+    Evaluacion AS (
+        SELECT c.id_pieza, c.anunciante, c.campania, c.id_pais_destino,
+               pa.nombre AS pais_destino,
+               CAST(CASE WHEN pa.id_pais IN (@id_pais_local, @id_pais_visitante) THEN 1 ELSE 0 END AS BIT) AS es_pais_partido,
+               c.pbi_per_capita,
+               CAST(CASE
+                   WHEN pa.hora_inicio_prime < pa.hora_fin_prime AND
+                        h.hora_local >= pa.hora_inicio_prime AND h.hora_local < pa.hora_fin_prime THEN 1
+                   WHEN pa.hora_inicio_prime > pa.hora_fin_prime AND
+                        (h.hora_local >= pa.hora_inicio_prime OR h.hora_local < pa.hora_fin_prime) THEN 1
+                   ELSE 0 END AS BIT) AS es_prime_time,
+               c.tarifa_usd
+        FROM Mercados c
         JOIN Mundial.Pais pa ON pa.id_pais = c.id_pais_destino
+        CROSS APPLY (VALUES (CAST(DATEADD(MINUTE,
+            CASE WHEN SUBSTRING(c.huso_horario, 4, 1) = '-' THEN -1 ELSE 1 END *
+            (60 * TRY_CONVERT(INT, SUBSTRING(c.huso_horario, 5, 2))
+                + TRY_CONVERT(INT, SUBSTRING(c.huso_horario, 8, 2))), @fecha_utc) AS TIME))) h(hora_local)
+    ),
+    MejorMercado AS (
+        SELECT *, ROW_NUMBER() OVER (PARTITION BY id_pieza ORDER BY
+            es_pais_partido DESC, pbi_per_capita DESC, es_prime_time DESC, id_pais_destino) AS orden_mercado
+        FROM Evaluacion
     ),
     Ranking AS (
         SELECT TOP 4
@@ -182,7 +199,8 @@ BEGIN
                 WHEN es_prime_time = 1 THEN N'Prioridad 2/3: Mayor PBI per capita + Prime Time local'
                 ELSE N'Prioridad 2: Mayor PBI per capita'
             END AS criterio_aplicado
-        FROM Evaluacion
+        FROM MejorMercado
+        WHERE orden_mercado = 1
         ORDER BY
             es_pais_partido DESC,
             pbi_per_capita DESC,
@@ -193,29 +211,8 @@ BEGIN
     INSERT INTO @seleccionados
     SELECT * FROM Ranking;
 
-    IF @persistir_en_sede = 1
-    BEGIN
-        BEGIN TRANSACTION;
-        BEGIN TRY
-            -- Asegurar los 4 espacios de la sede
-            EXEC Mundial.usp_Inicializar_Espacios_Sede @id_sede = @id_sede;
-
-            UPDATE ep
-            SET
-                ep.descripcion = LEFT(s.anunciante + N' - ' + s.campania + N' (' + s.criterio_aplicado + N')', 100),
-                ep.id_pais_interes = s.id_pais_destino
-            FROM Mundial.Espacio_publicitario ep
-            JOIN @seleccionados s ON s.numero_espacio = ep.numero_espacio
-            WHERE ep.id_sede = @id_sede;
-
-            COMMIT TRANSACTION;
-        END TRY
-        BEGIN CATCH
-            IF @@TRANCOUNT > 0
-                ROLLBACK TRANSACTION;
-            THROW;
-        END CATCH
-    END
+    IF (SELECT COUNT(*) FROM @seleccionados) <> 4
+        THROW 50602, N'Se requieren al menos cuatro piezas distintas para el partido.', 1;
 
     SELECT
         @id_partido AS id_partido,

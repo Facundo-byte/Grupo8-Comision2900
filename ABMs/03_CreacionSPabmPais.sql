@@ -10,7 +10,11 @@
 USE MundialDeFutbol;
 GO
 
-CREATE OR ALTER PROCEDURE MfSPabm.altaPais (@nombrePais VARCHAR(30))
+CREATE OR ALTER PROCEDURE MfSPabm.altaPais (@nombrePais VARCHAR(60),
+    @huso_horario VARCHAR(20) = NULL,
+    @pbi_per_capita DECIMAL(18,2) = NULL,
+    @hora_inicio_prime TIME(0) = '19:00',
+    @hora_fin_prime TIME(0) = '23:00')
 AS
 BEGIN
     DECLARE @errorCount INT = 0
@@ -28,10 +32,32 @@ BEGIN
         PRINT 'ERROR: Pais ya existente.';
     END
 
+    IF @pbi_per_capita < 0
+    BEGIN
+        SET @errorCount = @errorCount + 1;
+        PRINT 'ERROR: PBI per capita negativo.';
+    END
+
+    SET @huso_horario = UPPER(LTRIM(RTRIM(@huso_horario)));
+    IF @huso_horario IS NOT NULL AND (
+        @huso_horario NOT LIKE 'UTC[+-][01][0-9]:[0-5][0-9]'
+        OR RIGHT(@huso_horario, 5) > '14:00')
+    BEGIN
+        SET @errorCount = @errorCount + 1;
+        PRINT 'ERROR: El huso horario debe tener el formato UTC+HH:MM o UTC-HH:MM.';
+    END
+
+    IF @hora_inicio_prime IS NULL OR @hora_fin_prime IS NULL OR @hora_inicio_prime = @hora_fin_prime
+    BEGIN
+        SET @errorCount = @errorCount + 1;
+        PRINT 'ERROR: Indicar un inicio y fin de prime time distintos.';
+    END
+
     IF(@errorCount = 0)
     BEGIN
         BEGIN TRY
-            INSERT INTO Mundial.Pais(nombre) VALUES (@nombrePais);
+            INSERT INTO Mundial.Pais (nombre, huso_horario, pbi_per_capita, hora_inicio_prime, hora_fin_prime)
+            VALUES (@nombrePais, @huso_horario, @pbi_per_capita, @hora_inicio_prime, @hora_fin_prime);
             PRINT 'Pais creado exitosamente.';
         END TRY
         BEGIN CATCH
@@ -81,7 +107,11 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE MfSPabm.modificacionPais (@IDPais INT, @nombrePais VARCHAR(30))
+CREATE OR ALTER PROCEDURE MfSPabm.modificacionPais (@IDPais INT, @nombrePais VARCHAR(60),
+    @huso_horario VARCHAR(20) = NULL,
+    @pbi_per_capita DECIMAL(18,2) = NULL,
+    @hora_inicio_prime TIME(0) = NULL,
+    @hora_fin_prime TIME(0) = NULL)
 AS
 BEGIN
     DECLARE @errorCount INT = 0;
@@ -104,10 +134,38 @@ BEGIN
         PRINT 'ERROR: El nombre ya pertenece a otro Pais.';
     END
 
+    IF @pbi_per_capita < 0
+    BEGIN
+        SET @errorCount = @errorCount + 1;
+        PRINT 'ERROR: PBI per capita negativo.';
+    END
+
+    SET @huso_horario = UPPER(LTRIM(RTRIM(@huso_horario)));
+    IF @huso_horario IS NOT NULL AND (
+        @huso_horario NOT LIKE 'UTC[+-][01][0-9]:[0-5][0-9]'
+        OR RIGHT(@huso_horario, 5) > '14:00')
+    BEGIN
+        SET @errorCount = @errorCount + 1;
+        PRINT 'ERROR: El huso horario debe tener el formato UTC+HH:MM o UTC-HH:MM.';
+    END
+
+    IF (@hora_inicio_prime IS NULL AND @hora_fin_prime IS NOT NULL)
+       OR (@hora_fin_prime IS NULL AND @hora_inicio_prime IS NOT NULL) OR @hora_inicio_prime = @hora_fin_prime
+    BEGIN
+        SET @errorCount = @errorCount + 1;
+        PRINT 'ERROR: Indicar un inicio y fin de prime time distintos.';
+    END
+
     IF(@errorCount = 0)
     BEGIN
         BEGIN TRY
-            UPDATE Mundial.Pais SET nombre = @nombrePais WHERE id_pais = @IDPais;
+            UPDATE Mundial.Pais
+            SET nombre = LTRIM(RTRIM(@nombrePais)),
+                huso_horario = COALESCE(@huso_horario, huso_horario),
+                pbi_per_capita = COALESCE(@pbi_per_capita, pbi_per_capita),
+                hora_inicio_prime = COALESCE(@hora_inicio_prime, hora_inicio_prime),
+                hora_fin_prime = COALESCE(@hora_fin_prime, hora_fin_prime)
+            WHERE id_pais = @IDPais;
             PRINT 'Pais modificado exitosamente';
         END TRY
         BEGIN CATCH
