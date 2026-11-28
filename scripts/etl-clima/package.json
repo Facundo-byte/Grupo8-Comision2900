@@ -1,0 +1,14 @@
+{
+  "name": "etl-clima-sedes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ETL standalone: consulta clima por sede (Open-Meteo) y lo guarda en SQL Server",
+  "main": "etl-clima.js",
+  "scripts": {
+    "start": "node etl-clima.js",
+    "dev": "node --watch etl-clima.js"
+  },
+  "dependencies": {
+    "mssql": "^11.0.1"
+  }
+}
